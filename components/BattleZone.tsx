@@ -378,6 +378,26 @@ export const BattleZone: React.FC<BattleZoneProps> = ({ allies, level, phase, co
              const isHit = performance.now() - ent.lastHitTime < 150;
              const isUpgraded = upgrades.includes(ent.type) && ent.team === 'PLAYER'; // Ensure only player units get upgrade visual
              const scale = ent.scale || 1;
+             
+             // Calculate visual filters based on Health and Team
+             const healthRatio = ent.hp / ent.maxHp;
+             let filterStyle = '';
+             
+             if (ent.team === 'PLAYER') {
+                 // Player: Fade to White/Pale
+                 // Brightness increases (1.0 -> 2.2)
+                 // Saturation decreases (1.0 -> 0.3)
+                 // Result: Fades from normal color to a pale, bright version
+                 const b = 1 + (1 - healthRatio) * 1.2;
+                 const s = 0.3 + (0.7 * healthRatio);
+                 filterStyle = `brightness(${b}) saturate(${s})`;
+             } else {
+                 // Enemy: Fade to Black/Dark
+                 // Starts Darker (0.7) -> Ends Very Dark (0.25)
+                 // Result: Darker version of base color, fading to black
+                 const b = 0.25 + (healthRatio * 0.45);
+                 filterStyle = `brightness(${b})`;
+             }
 
              return (
                <div 
@@ -388,18 +408,14 @@ export const BattleZone: React.FC<BattleZoneProps> = ({ allies, level, phase, co
                     left: `${ent.x}%`, 
                     top: `${ent.y}%`, 
                     zIndex: zIndex, 
-                    transform: `translate(-50%, -50%) scale(${scale})`, // No flip here, flip is internal
+                    transform: `translate(-50%, -50%) scale(${scale})`,
                     width: '32px', 
-                    height: '32px' 
+                    height: '32px',
+                    filter: filterStyle,
                 }}
                >
-                 {/* HP Bar - Always upright */}
-                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-8 h-1 bg-gray-700 rounded overflow-hidden" style={{ transform: `scale(${1/scale})` }}>
-                   <div className={`h-full ${ent.team === 'PLAYER' ? 'bg-green-500' : 'bg-red-500'}`} style={{ width: `${(ent.hp / ent.maxHp) * 100}%` }}></div>
-                 </div>
-
                  {/* Icon Container - Flippable */}
-                 <div className={`w-full h-full transition-all duration-75 ${ent.team === 'ENEMY' ? 'brightness-75 hue-rotate-180' : ''} ${isHit ? 'brightness-200 sepia saturate-200 hue-rotate-[-50deg]' : ''}`}
+                 <div className={`w-full h-full transition-all duration-75 ${isHit ? 'brightness-200 sepia saturate-200 hue-rotate-[-50deg]' : ''}`}
                       style={{ transform: `scale(${ent.team === 'ENEMY' ? '-1, 1' : '1, 1'})` }}>
                     <UnitIcon type={ent.type} isUpgraded={isUpgraded} />
                  </div>

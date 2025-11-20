@@ -1,13 +1,13 @@
 
-import React, { useState, useEffect } from 'react';
-import { CheckCircle } from 'lucide-react';
+import React, { useState } from 'react';
+import { CheckCircle, Info } from 'lucide-react';
 import { UnitType } from '../types';
 import { REWARD_DEFINITIONS } from '../constants';
 import { UnitIcon } from './UnitIcon';
 
 interface RewardScreenProps {
   rewardIds: string[];
-  onSelect: (rewardType: string) => void;
+  onSelect: (rewardIds: string[]) => void;
   selectionsLeft: number;
   upgrades: UnitType[];
   rewardsHistory: Record<string, number>;
@@ -15,8 +15,13 @@ interface RewardScreenProps {
 }
 
 export const RewardScreen: React.FC<RewardScreenProps> = ({ rewardIds, onSelect, selectionsLeft, upgrades, rewardsHistory, survivors }) => {
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [exiting, setExiting] = useState(false);
+
+  // Calculate how many we can/must select. 
+  // Logic: If the game allows 2, but only 1 valid option is presented, user must select 1.
+  // If game allows 2 and 3 options exist, user must select 2.
+  const maxSelectable = Math.min(selectionsLeft, rewardIds.length);
 
   // Summarize survivors
   const survivorCounts = survivors.reduce((acc, type) => {
@@ -24,16 +29,28 @@ export const RewardScreen: React.FC<RewardScreenProps> = ({ rewardIds, onSelect,
       return acc;
   }, {} as Record<string, number>);
 
+  const toggleSelection = (id: string) => {
+    if (selectedIds.includes(id)) {
+      setSelectedIds(prev => prev.filter(sid => sid !== id));
+    } else {
+      // Only add if we haven't reached the limit
+      if (selectedIds.length < maxSelectable) {
+        setSelectedIds(prev => [...prev, id]);
+      }
+    }
+  };
+
   const handleConfirm = () => {
-    if (selectedId) {
+    if (selectedIds.length === maxSelectable) {
       setExiting(true);
       setTimeout(() => {
-          onSelect(selectedId);
+          onSelect(selectedIds);
       }, 400); // Match duration
     }
   };
 
-  const selectedReward = selectedId ? REWARD_DEFINITIONS[selectedId] : null;
+  const selectedRewards = selectedIds.map(id => REWARD_DEFINITIONS[id]).filter(Boolean);
+  const isReady = selectedIds.length === maxSelectable;
 
   return (
     <div className="absolute inset-0 z-[50000] flex items-center justify-center bg-black/60 backdrop-blur-sm overflow-hidden">
@@ -57,11 +74,13 @@ export const RewardScreen: React.FC<RewardScreenProps> = ({ rewardIds, onSelect,
                         <span className="text-[10px] font-mono text-white">{count}</span>
                     </div>
                 ))}
-                {survivors.length === 0 && <span className="text-xs text-slate-500 italic">No survivors...</span>}
+                {survivors.length === 0 && <span className="text-xs text-slate-500 italic">Only yourself...</span>}
             </div>
 
             <p className="text-slate-400 text-[10px] uppercase tracking-wide">
-                Picks Remaining: <span className="text-yellow-400 font-bold text-sm ml-1">{selectionsLeft}</span>
+                Picks Remaining: <span className={`font-bold text-sm ml-1 ${selectedIds.length < maxSelectable ? 'text-yellow-400 animate-pulse' : 'text-green-500'}`}>
+                  {Math.max(0, maxSelectable - selectedIds.length)}
+                </span>
             </p>
           </div>
 
@@ -70,8 +89,9 @@ export const RewardScreen: React.FC<RewardScreenProps> = ({ rewardIds, onSelect,
               <div className="grid grid-cols-3 gap-3 w-full mb-4">
                 {rewardIds.map(id => {
                   const def = REWARD_DEFINITIONS[id];
-                  const isSelected = selectedId === id;
+                  const isSelected = selectedIds.includes(id);
                   
+                  // Determine validity
                   let isValid = true;
                   if (id.startsWith('UPGRADE_')) {
                       const type = id.replace('UPGRADE_', '') as UnitType;
@@ -81,20 +101,27 @@ export const RewardScreen: React.FC<RewardScreenProps> = ({ rewardIds, onSelect,
                   } else if (id === 'EXPAND') {
                       if ((rewardsHistory['EXPAND'] || 0) >= 2) isValid = false;
                   }
+
+                  // If not selected, and we are at capacity, it appears disabled visually (or just distinct)
+                  const atCapacity = selectedIds.length >= maxSelectable;
+                  const canSelect = isValid && (isSelected || !atCapacity);
                   
                   if (!def) return null;
 
                   return (
                     <button
                       key={id}
-                      onClick={() => isValid && setSelectedId(id)}
-                      disabled={!isValid}
+                      onClick={() => isValid && toggleSelection(id)}
+                      disabled={!isValid || (!isSelected && atCapacity)}
                       className={`
                         flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all duration-200 aspect-square relative
-                        ${!isValid ? 'opacity-30 grayscale cursor-not-allowed border-slate-800 bg-slate-950' : 
-                          isSelected 
-                          ? 'bg-gradient-to-br from-yellow-900/40 to-slate-900 border-yellow-400 scale-105 z-10 shadow-lg' 
-                          : 'bg-slate-800 border-slate-600 hover:border-slate-500 hover:bg-slate-700'
+                        ${!isValid 
+                            ? 'opacity-30 grayscale cursor-not-allowed border-slate-800 bg-slate-950' 
+                            : isSelected 
+                                ? 'bg-gradient-to-br from-yellow-900/60 to-slate-900 border-yellow-400 scale-105 z-10 shadow-lg' 
+                                : atCapacity
+                                    ? 'bg-slate-800 border-slate-700 opacity-60 cursor-not-allowed'
+                                    : 'bg-slate-800 border-slate-600 hover:border-slate-500 hover:bg-slate-700'
                         }
                       `}
                     >
@@ -110,23 +137,47 @@ export const RewardScreen: React.FC<RewardScreenProps> = ({ rewardIds, onSelect,
                       <span className={`font-bold text-[9px] uppercase text-center leading-tight ${isSelected ? 'text-white' : 'text-slate-300'}`}>
                           {def.label}
                       </span>
+                      
+                      {/* Selection Order Badge */}
+                      {isSelected && maxSelectable > 1 && (
+                          <div className="absolute top-1 right-1 bg-yellow-500 text-black text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
+                              {selectedIds.indexOf(id) + 1}
+                          </div>
+                      )}
                     </button>
                   );
                 })}
               </div>
 
               {/* DETAILS & CONFIRM */}
-              <div className={`w-full transition-all duration-300 overflow-hidden ${selectedReward ? 'max-h-32 opacity-100' : 'max-h-0 opacity-0'}`}>
-                {selectedReward && (
-                    <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-3 text-center">
-                        <h3 className="text-sm font-bold text-white mb-1">{selectedReward.label}</h3>
-                        <p className="text-xs text-slate-400 mb-3">{selectedReward.desc}</p>
+              <div className={`w-full transition-all duration-300 overflow-hidden ${selectedRewards.length > 0 ? 'max-h-64 opacity-100' : 'max-h-0 opacity-0'}`}>
+                {selectedRewards.length > 0 && (
+                    <div className="bg-slate-900/80 border border-slate-700 rounded-lg p-3">
+                        <div className="flex items-center gap-2 mb-2 text-yellow-500 border-b border-slate-700 pb-1">
+                           <Info size={14} />
+                           <span className="text-xs font-bold uppercase">Selected Rewards</span>
+                        </div>
+                        
+                        <div className="space-y-1 mb-3">
+                            {selectedRewards.map((reward) => (
+                                <div key={reward.id} className="flex items-start gap-2 text-xs">
+                                    <span className="text-yellow-400 font-bold shrink-0">• {reward.label}:</span>
+                                    <span className="text-slate-300">{reward.desc}</span>
+                                </div>
+                            ))}
+                        </div>
+                        
                         <button 
                             onClick={handleConfirm}
-                            className="w-full py-2 bg-gradient-to-r from-yellow-600 to-yellow-500 hover:from-yellow-500 hover:to-yellow-400 text-black font-bold rounded-lg shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-all"
+                            disabled={!isReady}
+                            className={`w-full py-3 font-bold rounded-lg shadow-lg flex items-center justify-center gap-2 transition-all
+                                ${isReady 
+                                    ? 'bg-gradient-to-r from-yellow-600 to-yellow-500 hover:from-yellow-500 hover:to-yellow-400 text-black active:scale-95' 
+                                    : 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed'}
+                            `}
                         >
-                            <CheckCircle size={16} />
-                            CONFIRM
+                            <CheckCircle size={18} />
+                            {isReady ? 'CONFIRM SELECTION' : `SELECT ${maxSelectable - selectedIds.length} MORE`}
                         </button>
                     </div>
                 )}

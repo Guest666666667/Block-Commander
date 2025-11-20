@@ -34,8 +34,8 @@ export const COMMANDERS: Record<CommanderType, CommanderProfile> = {
 export const UNIT_STATS: Record<UnitType, EntityStats> = {
   [UnitType.COMMANDER]: { hp: 500, maxHp: 500, atk: 30, range: 1, def: 5, speed: 1000, scale: 1.2 },
   [UnitType.INFANTRY]: { hp: 100, maxHp: 100, atk: 15, range: 1, def: 2, speed: 800, scale: 1 }, // Fast attacker
-  [UnitType.ARCHER]: { hp: 60, maxHp: 60, atk: 25, range: 6, def: 0, speed: 2000, scale: 1 },   // Slow attacker, high dmg
-  [UnitType.SHIELD]: { hp: 200, maxHp: 200, atk: 8, range: 1, def: 8, speed: 1200, scale: 1 },
+  [UnitType.ARCHER]: { hp: 60, maxHp: 60, atk: 25, range: 6, def: 0, speed: 2000, scale: 0.8 },   // Slow attacker, high dmg
+  [UnitType.SHIELD]: { hp: 200, maxHp: 200, atk: 8, range: 1, def: 8, speed: 1200, scale: 1.1 },
   [UnitType.SPEAR]: { hp: 120, maxHp: 120, atk: 20, range: 2.5, def: 3, speed: 1100, scale: 1 }, // Slightly ranged melee
   [UnitType.OBSTACLE]: { hp: 500, maxHp: 500, atk: 0, range: 0, def: 0, speed: 99999, scale: 1 },
   
@@ -46,10 +46,10 @@ export const UNIT_STATS: Record<UnitType, EntityStats> = {
 
 // Upgrade Config: Absolute values added to base stats
 export const UNIT_UPGRADES: Partial<Record<UnitType, Partial<EntityStats>>> = {
-  [UnitType.INFANTRY]: { hp: 50, atk: 10, scale: 1.3 },
-  [UnitType.ARCHER]: { hp: 30, atk: 15, scale: 1.3 },
-  [UnitType.SHIELD]: { hp: 100, def: 5, scale: 1.3 },
-  [UnitType.SPEAR]: { hp: 60, atk: 12, scale: 1.3 },
+  [UnitType.INFANTRY]: { hp: 50, atk: 10, def: 1, scale: 1.3 },
+  [UnitType.ARCHER]: { hp: 30, atk: 15, range: 2, scale: 1.3 },
+  [UnitType.SHIELD]: { hp: 100, def: 4, scale: 1.3 },
+  [UnitType.SPEAR]: { hp: 60, atk: 10, scale: 1.3 },
 };
 
 export const UNIT_COLORS: Record<UnitType, string> = {

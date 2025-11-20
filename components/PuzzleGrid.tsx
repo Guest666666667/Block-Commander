@@ -118,28 +118,25 @@ export const PuzzleGrid: React.FC<PuzzleGridProps> = ({ gameState, onSummon, onB
 
   const clickReshuffleBtn = () => {
       if (isLocked || animating) return;
-      if (gameState.reshufflesUsed >= 3) {
-          return; // Max limit
-      }
+      // Unlimited uses allowed, as long as user pays cost
       setShowReshuffleModal(true);
   }
 
   const confirmReshuffle = () => {
-      const used = gameState.reshufflesUsed;
-      const cost = used === 0 ? 0 : used;
+      const RESHUFFLE_COST = 3;
       
       // Explicitly check against GameState to avoid sync issues
-      if (gameState.stepsRemaining < cost) return;
+      if (gameState.stepsRemaining < RESHUFFLE_COST) return;
 
       // Perform Reset
       const newGrid = shuffleSoldiers(grid, true); 
       setGrid(newGrid);
-      onReshufflePay(cost);
+      onReshufflePay(RESHUFFLE_COST);
       setShowReshuffleModal(false);
       
       // Reshuffle never obeys Strategy Lock - it always triggers a check
       // Logic check: if steps become 0 here, it will end phase after timeout.
-      const newSteps = gameState.stepsRemaining - cost;
+      const newSteps = gameState.stepsRemaining - RESHUFFLE_COST;
       setTimeout(() => {
          processMatchesAndShuffle(newGrid, newSteps);
       }, 300);
@@ -365,9 +362,9 @@ export const PuzzleGrid: React.FC<PuzzleGridProps> = ({ gameState, onSummon, onB
      return a.col - b.col;
   });
   const commander = getCommander();
-  const reshuffleCost = gameState.reshufflesUsed === 0 ? 0 : gameState.reshufflesUsed;
-  // Strictly enforce cost check from game state prop
-  const canAffordReshuffle = gameState.stepsRemaining >= reshuffleCost;
+  
+  const RESHUFFLE_COST = 3;
+  const canAffordReshuffle = gameState.stepsRemaining >= RESHUFFLE_COST;
 
   return (
     <div className={`h-full w-full bg-gray-800 flex flex-col items-center p-2 relative transition-all duration-1000 ${isLocked ? 'grayscale brightness-50 pointer-events-none' : ''}`}>
@@ -393,14 +390,13 @@ export const PuzzleGrid: React.FC<PuzzleGridProps> = ({ gameState, onSummon, onB
       {!isLocked && (
           <button 
             onClick={clickReshuffleBtn}
-            disabled={gameState.reshufflesUsed >= 3}
             className={`
                 absolute bottom-4 right-4 w-14 h-14 rounded-full shadow-lg flex flex-col items-center justify-center z-30 border-2 transition-all
-                ${gameState.reshufflesUsed >= 3 ? 'bg-gray-600 border-gray-500 opacity-50 cursor-not-allowed' : gameState.reshufflesUsed === 0 ? 'bg-emerald-700 border-emerald-400 text-white hover:scale-110' : 'bg-yellow-700 border-yellow-400 text-white hover:scale-110'}
+                ${!canAffordReshuffle ? 'bg-gray-600 border-gray-500 opacity-50' : 'bg-yellow-700 border-yellow-400 text-white hover:scale-110'}
             `}
           >
-            <RefreshCw size={18} className={`mb-0.5 ${gameState.reshufflesUsed === 0 ? 'animate-pulse' : ''}`} />
-            <span className="text-[9px] font-mono leading-none">{Math.max(0, 3 - gameState.reshufflesUsed)}/3</span>
+            <RefreshCw size={18} className="mb-0.5" />
+            <span className="text-[9px] font-mono leading-none">-3 STP</span>
           </button>
       )}
 
@@ -415,7 +411,7 @@ export const PuzzleGrid: React.FC<PuzzleGridProps> = ({ gameState, onSummon, onB
                   <div className="flex items-center gap-2 bg-slate-900 px-4 py-2 rounded-lg border border-slate-700 mb-6">
                       <span className="text-slate-400 text-sm">COST:</span>
                       <span className={`font-bold text-lg ${!canAffordReshuffle ? 'text-red-500' : 'text-yellow-400'}`}>
-                          {reshuffleCost} STEPS
+                          {RESHUFFLE_COST} STEPS
                       </span>
                   </div>
 

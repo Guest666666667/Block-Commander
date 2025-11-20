@@ -140,66 +140,52 @@ const App: React.FC = () => {
     }
   };
 
-  const handleRewardSelect = (rewardId: string) => {
+  const handleRewardSelect = (rewardIds: string[]) => {
     setGameState(prev => {
       let newSize = prev.gridSize;
       let newScavenger = prev.scavengerLevel;
       let newMaxRewards = prev.maxRewardSelections;
       const currentUpgrades = [...prev.upgrades];
       const newHistory = { ...prev.rewardsHistory };
-      const remaining = prev.rewardsRemaining - 1;
       
-      // Update History
-      newHistory[rewardId] = (newHistory[rewardId] || 0) + 1;
+      // Iterate all selections
+      rewardIds.forEach(rewardId => {
+        newHistory[rewardId] = (newHistory[rewardId] || 0) + 1;
 
-      // Apply Reward Effect
-      if (rewardId === 'EXPAND' && newSize < MAX_GRID_SIZE) {
-        newSize += 1;
-      } else if (rewardId === 'SCAVENGER') {
-        newScavenger += 1;
-      } else if (rewardId === 'GREED') {
-        newMaxRewards += 1;
-      } else if (rewardId.startsWith('UPGRADE_')) {
-        const type = rewardId.replace('UPGRADE_', '') as UnitType;
-        if (!currentUpgrades.includes(type)) {
-            currentUpgrades.push(type);
+        if (rewardId === 'EXPAND' && newSize < MAX_GRID_SIZE) {
+            newSize += 1;
+        } else if (rewardId === 'SCAVENGER') {
+            newScavenger += 1;
+        } else if (rewardId === 'GREED') {
+            newMaxRewards += 1;
+        } else if (rewardId.startsWith('UPGRADE_')) {
+            const type = rewardId.replace('UPGRADE_', '') as UnitType;
+            if (!currentUpgrades.includes(type)) {
+                currentUpgrades.push(type);
+            }
         }
-      }
+      });
 
-      // Decide next step
-      if (remaining > 0) {
-        // Stay in Reward Phase
-        return {
-          ...prev,
-          gridSize: newSize,
-          scavengerLevel: newScavenger,
-          maxRewardSelections: newMaxRewards,
-          upgrades: currentUpgrades,
-          rewardsRemaining: remaining,
-          rewardsHistory: newHistory
-        };
-      } else {
-        // Proceed to Next Level
-        const nextLevel = prev.currentLevel + 1;
-        const nextSteps = LEVEL_STEPS[nextLevel - 1] || 10;
+      // Proceed to Next Level immediately (since we batched selections)
+      const nextLevel = prev.currentLevel + 1;
+      const nextSteps = LEVEL_STEPS[nextLevel - 1] || 10;
 
-        return {
-          ...prev,
-          gridSize: newSize,
-          scavengerLevel: newScavenger,
-          maxRewardSelections: newMaxRewards,
-          upgrades: currentUpgrades,
-          rewardsRemaining: 0,
-          rewardsHistory: newHistory,
-          currentLevel: nextLevel,
-          stepsRemaining: nextSteps,
-          reshufflesUsed: 0,
-          phase: Phase.PUZZLE, 
-          summonQueue: [UnitType.COMMANDER, ...prev.survivors], 
-          survivors: [], // Clear temp storage
-          currentRewardIds: []
-        };
-      }
+      return {
+        ...prev,
+        gridSize: newSize,
+        scavengerLevel: newScavenger,
+        maxRewardSelections: newMaxRewards,
+        upgrades: currentUpgrades,
+        rewardsRemaining: 0,
+        rewardsHistory: newHistory,
+        currentLevel: nextLevel,
+        stepsRemaining: nextSteps,
+        reshufflesUsed: 0,
+        phase: Phase.PUZZLE, 
+        summonQueue: [UnitType.COMMANDER, ...prev.survivors], 
+        survivors: [], 
+        currentRewardIds: []
+      };
     });
   };
 
