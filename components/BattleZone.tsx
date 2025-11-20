@@ -1,9 +1,9 @@
 
 import React, { useState } from 'react';
 import { BattleEntity, Phase, UnitType } from '../types';
-import { REWARD_DEFINITIONS, BUFF_CONFIG } from '../constants';
+import { REWARD_DEFINITIONS, BUFF_CONFIG, COMMANDERS } from '../constants';
 import { UnitIcon } from './UnitIcon';
-import { Play, MoveRight, Sparkles, Pause, X, Shield, Sword, Heart, Zap, Plus, Flag, Target, Footprints, Timer } from 'lucide-react';
+import { Play, MoveRight, Sparkles, Pause, X, Shield, Sword, Heart, Zap, Plus, Flag, Target, Footprints, Timer, Backpack } from 'lucide-react';
 import { useBattleLoop } from './battle/useBattleLoop';
 import { calculateEntityStats } from './battle/battleUtils';
 
@@ -53,6 +53,7 @@ export const BattleZone: React.FC<BattleZoneProps> = (props) => {
   });
 
   const [selectedEntity, setSelectedEntity] = useState<BattleEntity | null>(null);
+  const [showBuffs, setShowBuffs] = useState(false);
 
   const toggleSpeed = () => setSpeedMultiplier(prev => prev === 3 ? 1 : prev + 1);
   
@@ -71,15 +72,32 @@ export const BattleZone: React.FC<BattleZoneProps> = (props) => {
   const handleEntityClick = (entity: BattleEntity) => {
       if (!isPaused) setIsPaused(true);
       setSelectedEntity(entity);
+      setShowBuffs(false);
   };
 
   const handleCloseModal = () => {
       setSelectedEntity(null);
+      setShowBuffs(false);
       setIsPaused(false);
+  };
+
+  const toggleBuffs = () => {
+      if (showBuffs) {
+          setShowBuffs(false);
+          if (selectedEntity === null) setIsPaused(false);
+      } else {
+          if (!isPaused) setIsPaused(true);
+          setShowBuffs(true);
+          setSelectedEntity(null);
+      }
   };
 
   const aliveEnemies = entities.filter(e => e.team === 'ENEMY' && e.hp > 0).length;
   const aliveAllies = entities.filter(e => e.team === 'PLAYER' && e.hp > 0).length;
+
+  const ownedRewards = Object.entries(props.rewardsHistory)
+        .map(([id, count]) => ({ id, count: count as number, def: REWARD_DEFINITIONS[id] }))
+        .filter(item => item.def);
 
   return (
     <div className="relative w-full h-full bg-slate-900 overflow-hidden">
@@ -178,27 +196,22 @@ export const BattleZone: React.FC<BattleZoneProps> = (props) => {
        <div className="absolute top-2 left-2 text-[10px] text-green-400/70 font-mono pointer-events-none border border-green-900/50 bg-black/20 px-2 py-1 rounded z-50">ALLIES: {aliveAllies}</div>
        <div className="absolute top-2 right-2 text-[10px] text-red-400/70 font-mono pointer-events-none border border-red-900/50 bg-black/20 px-2 py-1 rounded z-50">ENEMIES: {aliveEnemies}</div>
 
-       <div className="absolute bottom-2 left-2 flex gap-2 z-40">
-            {Object.entries(props.rewardsHistory).map(([id, count]) => {
-                const def = REWARD_DEFINITIONS[id];
-                if (!def) return null;
-                if (id.startsWith('UPGRADE_')) return null; 
-                return (
-                    <div key={id} className="relative w-8 h-8 bg-slate-800/80 border border-slate-600 rounded p-1.5 text-yellow-500 flex items-center justify-center shadow-lg backdrop-blur-sm">
-                        <def.icon size={20} />
-                        {count > 1 && (
-                            <div className="absolute -bottom-1 -right-1 bg-red-600 text-white text-[9px] font-bold w-3.5 h-3.5 rounded-full flex items-center justify-center border border-slate-900 shadow-sm">
-                                {count}
-                            </div>
-                        )}
-                    </div>
-                )
-            })}
+       {/* BUFF TOGGLE BUTTON */}
+       <div className="absolute bottom-2 left-2 z-40">
+            <button 
+                onClick={toggleBuffs}
+                className={`
+                    w-10 h-10 rounded-md shadow-lg flex items-center justify-center border-2 transition-all
+                    ${showBuffs ? 'bg-slate-700 border-yellow-500 text-yellow-400' : 'bg-slate-800/80 border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white'}
+                `}
+            >
+                <Backpack size={18} />
+            </button>
        </div>
 
        <div className="absolute top-2 left-1/2 -translate-x-1/2 flex gap-2 z-50">
-           <button onClick={togglePause} className={`bg-slate-800/80 hover:bg-slate-700 text-white border border-slate-600 rounded-md px-3 py-1 flex items-center justify-center transition-all shadow-lg active:scale-95 w-10 ${isPaused ? 'animate-pulse ring-2 ring-yellow-500' : ''}`}>
-             {isPaused ? <Play size={14} /> : <Pause size={14} />}
+           <button onClick={togglePause} className={`bg-slate-800/80 hover:bg-slate-700 text-white border border-slate-600 rounded-md px-3 py-1 flex items-center justify-center transition-all shadow-lg active:scale-95 w-10 ${isPaused && !selectedEntity && !showBuffs ? 'animate-pulse ring-2 ring-yellow-500' : ''}`}>
+             {isPaused && !selectedEntity && !showBuffs ? <Play size={14} /> : <Pause size={14} />}
            </button>
            <button onClick={toggleSpeed} className="bg-slate-800/80 hover:bg-slate-700 text-yellow-400 border border-slate-600 rounded-md px-3 py-1 flex items-center gap-0.5 transition-all shadow-lg active:scale-95 min-w-[40px] justify-center">
              {Array.from({ length: speedMultiplier }).map((_, i) => (<Play key={i} size={12} fill="currentColor" className={i > 0 ? "-ml-1.5" : ""} />))}
@@ -208,6 +221,46 @@ export const BattleZone: React.FC<BattleZoneProps> = (props) => {
            </button>
        </div>
 
+       {/* BUFFS LIST MODAL */}
+       {showBuffs && (
+           <div className="absolute inset-0 z-[60] flex items-center justify-center p-8" onClick={handleCloseModal}>
+               <div className="bg-slate-800 border-2 border-slate-600 rounded-xl p-4 shadow-2xl max-w-xs w-full relative animate-fade-in" onClick={(e) => e.stopPropagation()}>
+                   <div className="flex justify-between items-center mb-4 pb-2 border-b border-slate-700">
+                        <div className="flex items-center gap-2">
+                            <Backpack size={18} className="text-yellow-500" />
+                            <span className="font-bold text-white uppercase">Current Gains</span>
+                        </div>
+                        <button onClick={handleCloseModal} className="text-slate-400 hover:text-white">
+                            <X size={18} />
+                        </button>
+                   </div>
+                   
+                   <div className="space-y-2 max-h-[50vh] overflow-y-auto">
+                       {ownedRewards.length === 0 && (
+                           <p className="text-slate-500 text-sm text-center py-4 italic">No items collected yet.</p>
+                       )}
+                       {ownedRewards.map(({ id, count, def }) => (
+                           <div key={id} className="bg-slate-900/50 p-2 rounded border border-slate-700 flex items-center gap-3">
+                               <div className="bg-slate-800 p-1.5 rounded text-yellow-500 border border-slate-600">
+                                   <def.icon size={16} />
+                               </div>
+                               <div className="flex-1">
+                                   <div className="flex justify-between items-center">
+                                       <span className="text-xs font-bold text-slate-200 uppercase">{def.label}</span>
+                                       {count > 1 && (
+                                           <span className="text-[10px] font-bold text-black bg-yellow-500 px-1.5 rounded-full">x{count}</span>
+                                       )}
+                                   </div>
+                                   <p className="text-[10px] text-slate-400 leading-tight">{def.desc}</p>
+                               </div>
+                           </div>
+                       ))}
+                   </div>
+               </div>
+           </div>
+       )}
+
+       {/* ENTITY DETAIL MODAL */}
        {isPaused && selectedEntity && (() => {
            const effectiveStats = calculateEntityStats(selectedEntity);
            
@@ -246,12 +299,19 @@ export const BattleZone: React.FC<BattleZoneProps> = (props) => {
                                <UnitIcon type={selectedEntity.type} isUpgraded={props.upgrades?.includes(selectedEntity.type) && selectedEntity.team === 'PLAYER'} />
                            </div>
                            <div>
-                               <h3 className={`font-black text-xl uppercase tracking-wide ${selectedEntity.team === 'PLAYER' ? 'text-green-400' : 'text-red-400'}`}>
-                                   {selectedEntity.type.replace('COMMANDER_', '').replace('INFANTRY', 'INF.').replace('OBSTACLE', 'OBST.')}
+                               <h3 className={`font-black text-lg uppercase tracking-wide leading-tight ${selectedEntity.team === 'PLAYER' ? 'text-green-400' : 'text-red-400'}`}>
+                                   {COMMANDERS[selectedEntity.type] ? COMMANDERS[selectedEntity.type].name : selectedEntity.type}
                                </h3>
-                               <span className="text-[10px] font-bold text-slate-500 bg-slate-900 px-1.5 py-0.5 rounded uppercase tracking-wider">
-                                    LV.{props.level} {selectedEntity.team === 'PLAYER' ? 'ALLY' : 'ENEMY'}
-                               </span>
+                               
+                               <div className="flex items-center gap-2 text-base font-mono font-bold text-slate-200 mt-0.5">
+                                   <Heart size={14} className="text-red-500 fill-red-500" />
+                                   <span>
+                                       <span className={selectedEntity.hp < effectiveStats.maxHp ? "text-red-400" : "text-white"}>
+                                           {Math.ceil(selectedEntity.hp)}
+                                       </span>
+                                       <span className="text-slate-500 text-xs">/{effectiveStats.maxHp}</span>
+                                   </span>
+                               </div>
                            </div>
                        </div>
                        
@@ -259,15 +319,6 @@ export const BattleZone: React.FC<BattleZoneProps> = (props) => {
                             <button onClick={handleCloseModal} className="text-slate-400 hover:text-white p-1 bg-slate-900 rounded-full hover:bg-slate-700 transition-colors">
                                 <X size={18} />
                             </button>
-                           <div className="flex items-center gap-2 text-2xl font-mono font-bold text-slate-200">
-                               <Heart size={18} className="text-red-500 fill-red-500" />
-                               <span>
-                                   <span className={selectedEntity.hp < effectiveStats.maxHp ? "text-red-400" : "text-white"}>
-                                       {Math.ceil(selectedEntity.hp)}
-                                   </span>
-                                   <span className="text-slate-500 text-lg">/{effectiveStats.maxHp}</span>
-                               </span>
-                           </div>
                        </div>
                    </div>
 

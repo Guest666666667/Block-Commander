@@ -111,6 +111,7 @@ export interface VisualEffect {
 export interface CommanderProfile {
   id: UnitType; // Keyed by UnitType now
   name: string;
+  shortName: string; // Display name for small grids
   role: string;
   description: string;
   skillName: string;

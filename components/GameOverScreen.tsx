@@ -42,7 +42,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({ stats, finalArmy
   let survivorScore = 0;
   Object.entries(armyCounts).forEach(([type, count]) => {
     const pts = SCORING.UNIT_SURVIVOR_BONUS[type] || 50;
-    survivorScore += (count * pts);
+    survivorScore += ((count as number) * pts);
   });
   totalScore += survivorScore;
 
@@ -50,7 +50,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({ stats, finalArmy
   let killScore = 0;
   Object.entries(killCounts).forEach(([type, count]) => {
       const pts = SCORING.KILL_SCORE[type] || 50;
-      killScore += (count * pts);
+      killScore += ((count as number) * pts);
   });
   totalScore += killScore;
 
@@ -115,7 +115,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({ stats, finalArmy
                       {Object.entries(killCounts).map(([type, count]) => (
                           renderRow(
                               type.startsWith('COMMANDER_') ? 'Enemy Commander' : type.replace('ENEMY_', ''), 
-                              count, 
+                              count as number, 
                               SCORING.KILL_SCORE[type] || 50,
                               <Crosshair size={14} className="text-red-400" />
                           )
@@ -130,7 +130,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({ stats, finalArmy
                       {Object.entries(armyCounts).map(([type, count]) => (
                           renderRow(
                               type.startsWith('COMMANDER_') ? 'Commander' : type, 
-                              count, 
+                              count as number, 
                               SCORING.UNIT_SURVIVOR_BONUS[type] || 50,
                               <div className="w-4 h-4"><UnitIcon type={type as UnitType} size={16} /></div>
                           )

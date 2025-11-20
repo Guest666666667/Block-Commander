@@ -42,6 +42,14 @@ const App: React.FC = () => {
   // --- Actions ---
 
   const startGame = (commanderUnitType: UnitType) => {
+    // Apply INITIAL_ARMY_CONFIG to everyone (Debug/Global Config)
+    const startingArmy = [commanderUnitType, ...INITIAL_ARMY_CONFIG];
+    
+    // Centurion Skill: Start with an EXTRA full retinue
+    if (commanderUnitType === UnitType.COMMANDER_CENTURION) {
+        startingArmy.push(UnitType.INFANTRY, UnitType.ARCHER, UnitType.SHIELD, UnitType.SPEAR);
+    }
+
     setGameState(prev => ({
       ...prev,
       phase: Phase.PUZZLE,
@@ -50,7 +58,7 @@ const App: React.FC = () => {
       gridSize: INITIAL_GRID_SIZE,
       stepsRemaining: LEVEL_STEPS[0],
       reshufflesUsed: 0,
-      summonQueue: [commanderUnitType, ...INITIAL_ARMY_CONFIG], // Deploy Selected Commander and Debug Army
+      summonQueue: startingArmy, // Deploy Selected Commander + Config + Skill Units
       survivors: [],
       playerHp: 100,
       scavengerLevel: 0,
@@ -117,6 +125,11 @@ const App: React.FC = () => {
       // AGILITY (Max 1 time - adds +1 range)
       if ((history['AGILITY'] || 0) < 1) {
           pool.push('AGILITY');
+      }
+      
+      // REINFORCE (Max 1 time - Old Centurion Skill)
+      if ((history['REINFORCE'] || 0) < 1) {
+          pool.push('REINFORCE');
       }
 
       // REMODEL (Max 4 times)

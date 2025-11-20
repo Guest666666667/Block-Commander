@@ -1,6 +1,6 @@
 
 import { UnitType, CommanderProfile, EntityStats, CommanderClass, BuffStats } from './types';
-import { Box, Grid, Coins, Swords, Crosshair, ShieldCheck, Tent, Footprints, Hammer } from 'lucide-react';
+import { Box, Grid, Coins, Swords, Crosshair, ShieldCheck, Tent, Footprints, Hammer, UserPlus } from 'lucide-react';
 
 export const INITIAL_GRID_SIZE = 3;
 export const MAX_GRID_SIZE = 5;
@@ -17,7 +17,7 @@ export const INITIAL_ARMY_CONFIG: UnitType[] = [
 ];
 
 // Steps per level: [Level 1, Level 2, ..., Level 6]
-export const LEVEL_STEPS = [1, 12, 15, 18, 21, 25];
+export const LEVEL_STEPS = [10, 12, 15, 18, 21, 25];
 
 export const SCORING = {
   VICTORY_BONUS: 5000,
@@ -55,46 +55,51 @@ export const COMMANDERS: Record<string, CommanderProfile> = {
   [UnitType.COMMANDER_CENTURION]: {
     id: UnitType.COMMANDER_CENTURION,
     name: "Centurion",
+    shortName: "Centurion",
     role: "Tactician",
     description: "A disciplined leader of the iron legion.",
-    skillName: "Reinforce",
-    skillDesc: "At battle start, randomly recruits 1 adjacent soldier.",
+    skillName: "Praetorian Guard",
+    skillDesc: "Starts the campaign with a squad of four soldiers.",
     class: CommanderClass.CENTURION
   },
   [UnitType.COMMANDER_ELF]: {
     id: UnitType.COMMANDER_ELF,
     name: "Elven Ranger",
+    shortName: "Ranger",
     role: "Sharpshooter",
     description: "A master of long-range warfare.",
     skillName: "Eagle Eye",
-    skillDesc: "All friendly Archers gain +Attack Range and +Attack Speed.",
+    skillDesc: "All Archer allies gain Attack Range and Attack Speed bouns.",
     class: CommanderClass.ELF
   },
   [UnitType.COMMANDER_WARLORD]: {
     id: UnitType.COMMANDER_WARLORD,
     name: "Iron Warlord",
+    shortName: "Warlord",
     role: "Berserker",
     description: "A brutal commander who leads from the front.",
     skillName: "Bloodlust",
-    skillDesc: "Friendly Infantry gain +1 Range and cause heavy impact.",
+    skillDesc: "All Infantry allies gain HP and Attack Range bouns.",
     class: CommanderClass.WARLORD
   },
   [UnitType.COMMANDER_GUARDIAN]: {
     id: UnitType.COMMANDER_GUARDIAN,
     name: "High Guardian",
+    shortName: "Guardian",
     role: "Protector",
     description: "A stalwart defender of the weak.",
     skillName: "Phalanx",
-    skillDesc: "Friendly Shield units regenerate HP over time.",
+    skillDesc: "All Shield allies regenerate HP over time.",
     class: CommanderClass.GUARDIAN
   },
   [UnitType.COMMANDER_VANGUARD]: {
     id: UnitType.COMMANDER_VANGUARD,
     name: "Storm Vanguard",
+    shortName: "Vanguard",
     role: "Shock Trooper",
     description: "A lightning-fast initiator.",
     skillName: "Blitzkrieg",
-    skillDesc: "Friendly Spear units gain +MaxHP and +MoveSpeed.",
+    skillDesc: "All Spear allies gain HP and MoveSpeed bouns.",
     class: CommanderClass.VANGUARD
   }
 };
@@ -199,6 +204,7 @@ export const REWARD_DEFINITIONS: Record<string, RewardDef> = {
   'REMODEL': { id: 'REMODEL', label: 'Remodel', desc: 'Replaces 1 Obstacle with a random Unit.', icon: Hammer },
   'GREED': { id: 'GREED', label: 'Greed', desc: '+1 Reward Selection for future victories.', icon: Coins },
   'AGILITY': { id: 'AGILITY', label: 'Agility', desc: 'Commander Move Range +1.', icon: Footprints },
+  'REINFORCE': { id: 'REINFORCE', label: 'Reinforce', desc: 'Recruits 1 adjacent soldier before battle.', icon: UserPlus },
   [`UPGRADE_${UnitType.INFANTRY}`]: { id: `UPGRADE_${UnitType.INFANTRY}`, label: 'Elite Inf.', desc: '+HP, +ATK, +SPD', icon: Swords },
   [`UPGRADE_${UnitType.ARCHER}`]: { id: `UPGRADE_${UnitType.ARCHER}`, label: 'Elite Arch.', desc: '+HP, +ATK, +RANGE', icon: Crosshair },
   [`UPGRADE_${UnitType.SHIELD}`]: { id: `UPGRADE_${UnitType.SHIELD}`, label: 'Elite Shld.', desc: '+HP, +DEF', icon: ShieldCheck },
@@ -217,37 +223,37 @@ export const GAME_LEVELS: LevelConfig[] = [
   { 
     // Level 1: Basic Melee + Range
     difficultyMult: 1.0, 
-    unitCounts: { [UnitType.INFANTRY]: 1, [UnitType.ARCHER]: 3 }, 
+    unitCounts: { [UnitType.INFANTRY]: 2, [UnitType.ARCHER]: 1 }, 
     enemyCommanders: [] 
   },
   { 
-    // Level 2: Unlock Shield
-    difficultyMult: 1.05, 
-    unitCounts: { [UnitType.INFANTRY]: 4, [UnitType.ARCHER]: 2 }, 
+    // Level 2
+    difficultyMult: 1.0, 
+    unitCounts: { [UnitType.INFANTRY]: 4, [UnitType.ARCHER]: 3 }, 
     enemyCommanders: [] 
   },
   { 
-    // Level 3: Unlock Spear
-    difficultyMult: 1.1, 
+    // Level 3: Unlock Shield
+    difficultyMult: 1.0, 
     unitCounts: { [UnitType.INFANTRY]: 6, [UnitType.ARCHER]: 4, [UnitType.SHIELD]: 1 }, 
-    enemyCommanders: [] 
-  },
-  { 
-    // Level 4: Introduce Commander (Centurion)
-    difficultyMult: 1.15, 
-    unitCounts: { [UnitType.INFANTRY]: 9, [UnitType.ARCHER]: 7, [UnitType.SHIELD]: 3, [UnitType.SPEAR]: 1 }, 
-    enemyCommanders: [UnitType.COMMANDER_CENTURION] 
-  },
-  { 
-    // Level 5: Two Commanders
-    difficultyMult: 1.2, 
-    unitCounts: { [UnitType.INFANTRY]: 12, [UnitType.ARCHER]: 10, [UnitType.SHIELD]: 7, [UnitType.SPEAR]: 3 }, 
     enemyCommanders: [UnitType.COMMANDER_WARLORD] 
   },
   { 
+    // Level 4: Unlock Spear
+    difficultyMult: 1.05, 
+    unitCounts: { [UnitType.INFANTRY]: 9, [UnitType.ARCHER]: 7, [UnitType.SHIELD]: 3, [UnitType.SPEAR]: 1 }, 
+    enemyCommanders: [UnitType.COMMANDER_ELF] 
+  },
+  { 
+    // Level 5: Introduce Commander
+    difficultyMult: 1.1, 
+    unitCounts: { [UnitType.INFANTRY]: 12, [UnitType.ARCHER]: 10, [UnitType.SHIELD]: 7, [UnitType.SPEAR]: 5 }, 
+    enemyCommanders: [UnitType.COMMANDER_GUARDIAN] 
+  },
+  { 
     // Level 6: Boss Rush
-    difficultyMult: 1.25, 
-    unitCounts: { [UnitType.INFANTRY]: 18, [UnitType.ARCHER]: 15, [UnitType.SHIELD]: 10, [UnitType.SPEAR]: 6 }, 
-    enemyCommanders: [UnitType.COMMANDER_GUARDIAN, UnitType.COMMANDER_ELF] 
+    difficultyMult: 1.2, 
+    unitCounts: { [UnitType.INFANTRY]: 18, [UnitType.ARCHER]: 15, [UnitType.SHIELD]: 12, [UnitType.SPEAR]: 8 }, 
+    enemyCommanders: [UnitType.COMMANDER_VANGUARD, UnitType.COMMANDER_CENTURION] 
   }
 ];

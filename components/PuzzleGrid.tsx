@@ -366,9 +366,8 @@ export const PuzzleGrid: React.FC<PuzzleGridProps> = ({ gameState, onSummon, onM
     const commander = finalGrid.find(c => isCommander(c.type));
     let skillSummons: UnitType[] = [];
 
-    // Use CommanderType check via name/class if needed, or simpler:
-    // If the specific UnitType is COMMANDER_CENTURION
-    if (commander && commander.type === UnitType.COMMANDER_CENTURION) {
+    // NEW LOGIC: Check for REINFORCE reward specifically
+    if (commander && gameState.rewardsHistory['REINFORCE']) {
         const neighbors: UnitType[] = [];
         finalGrid.forEach(item => {
             if (isSoldier(item.type)) {
@@ -410,31 +409,30 @@ export const PuzzleGrid: React.FC<PuzzleGridProps> = ({ gameState, onSummon, onM
         </div>
       )}
       
+      {/* CONTROLS GROUP: Positioned to appear in BattleZone Bottom-Right */}
       {!isLocked && (
-        <button
-            onClick={() => setStrategyLocked(!strategyLocked)}
-            className={`
-                absolute bottom-4 left-4 w-14 h-14 rounded-full shadow-lg flex flex-col items-center justify-center z-30 border-2 transition-all
-                ${strategyLocked ? 'bg-red-900 border-red-500 text-white' : 'bg-slate-700 border-slate-500 text-slate-300 hover:bg-slate-600'}
-            `}
-        >
-            {strategyLocked ? <Lock size={20} className="mb-0.5 text-red-200" /> : <Unlock size={20} className="mb-0.5" />}
-            <span className="text-[9px] font-mono leading-none">{strategyLocked ? 'LOCKED' : 'UNLOCK'}</span>
-        </button>
-      )}
+        <div className="absolute bottom-full mb-4 right-2 flex gap-2 z-40">
+            <button
+                onClick={() => setStrategyLocked(!strategyLocked)}
+                className={`
+                    w-10 h-10 rounded-md shadow-lg flex flex-col items-center justify-center border-2 transition-all
+                    ${strategyLocked ? 'bg-red-900 border-red-500 text-white' : 'bg-slate-800 border-slate-600 text-slate-300 hover:bg-slate-700'}
+                `}
+            >
+                {strategyLocked ? <Lock size={16} className="text-red-200" /> : <Unlock size={16} />}
+            </button>
 
-      {!isLocked && (
-          <button 
-            onClick={clickReshuffleBtn}
-            disabled={!canAffordReshuffle}
-            className={`
-                absolute bottom-4 right-4 w-14 h-14 rounded-full shadow-lg flex flex-col items-center justify-center z-30 border-2 transition-all
-                ${!canAffordReshuffle ? 'bg-gray-600 border-gray-500 opacity-50 cursor-not-allowed' : 'bg-yellow-700 border-yellow-400 text-white hover:scale-110'}
-            `}
-          >
-            <RefreshCw size={18} className="mb-0.5" />
-            <span className="text-[9px] font-mono leading-none">-3 STP</span>
-          </button>
+            <button 
+                onClick={clickReshuffleBtn}
+                disabled={!canAffordReshuffle}
+                className={`
+                    w-10 h-10 rounded-md shadow-lg flex flex-col items-center justify-center border-2 transition-all
+                    ${!canAffordReshuffle ? 'bg-slate-800 border-slate-600 opacity-50 cursor-not-allowed' : 'bg-yellow-700 border-yellow-400 text-white hover:bg-yellow-600'}
+                `}
+            >
+                <RefreshCw size={16} />
+            </button>
+        </div>
       )}
 
       {showReshuffleModal && (

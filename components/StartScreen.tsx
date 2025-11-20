@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { COMMANDERS } from '../constants';
 import { UnitType } from '../types';
-import { Zap } from 'lucide-react';
+import { Zap, Play } from 'lucide-react';
 import { UnitIcon } from './UnitIcon';
 
 interface StartScreenProps {
@@ -10,98 +10,127 @@ interface StartScreenProps {
 }
 
 export const StartScreen: React.FC<StartScreenProps> = ({ onStart }) => {
-  const [selectedId, setSelectedId] = useState<UnitType | null>(null);
+  // Defined order for the carousel
+  const COMMANDER_ORDER = [
+    UnitType.COMMANDER_VANGUARD,
+    UnitType.COMMANDER_ELF,
+    UnitType.COMMANDER_CENTURION,
+    UnitType.COMMANDER_WARLORD,
+    UnitType.COMMANDER_GUARDIAN
+  ];
 
-  const selectedCommander = selectedId ? COMMANDERS[selectedId] : null;
+  // Default to index 2 (Centurion)
+  const [activeIndex, setActiveIndex] = useState(2);
 
-  // Layout logic: 3x3 Grid.
-  // Slots: 0,1,2,3,4,5,6,7,8
-  // 4 (Center) = Centurion
-  // 0, 2, 6, 8 (Corners) = Others
-  const gridSlots: (UnitType | null)[] = Array(9).fill(null);
-  
-  const corners = [0, 2, 6, 8];
-  let cornerIdx = 0;
+  const handleCardClick = (index: number) => {
+    setActiveIndex(index);
+  };
 
-  Object.values(COMMANDERS).forEach(cmd => {
-      if (cmd.id === UnitType.COMMANDER_CENTURION) {
-          gridSlots[4] = cmd.id;
-      } else {
-          if (cornerIdx < corners.length) {
-              gridSlots[corners[cornerIdx]] = cmd.id;
-              cornerIdx++;
-          }
-      }
-  });
+  const selectedId = COMMANDER_ORDER[activeIndex];
+  const selectedCommander = COMMANDERS[selectedId];
 
   return (
     <div className="h-full w-full flex flex-col items-center bg-slate-900 p-6 text-center relative overflow-hidden">
       {/* Title */}
-      <div className="mt-4 mb-4">
+      <div className="mt-4 mb-6 z-20">
         <h1 className="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-red-600 mb-2">
             LEGION
         </h1>
         <h2 className="text-2xl font-bold text-white tracking-widest">COMMANDER</h2>
       </div>
 
-      {/* Commander Selection Grid */}
-      <div className="grid grid-cols-3 gap-3 w-full max-w-md mb-6">
-        {gridSlots.map((cmdId, idx) => {
-            if (!cmdId) {
-                return <div key={idx} className="w-full aspect-square"></div>; // Empty slot
-            }
-            
-            const cmd = COMMANDERS[cmdId];
-            const isSelected = selectedId === cmd.id;
-            
-            return (
-                <button
-                    key={cmd.id}
-                    onClick={() => setSelectedId(cmd.id)}
-                    className={`
-                        flex flex-col items-center justify-center p-2 rounded-xl border-2 transition-all duration-300 relative overflow-hidden aspect-square
-                        ${isSelected ? 'border-yellow-500 bg-slate-800 scale-110 shadow-[0_0_20px_rgba(234,179,8,0.3)] z-10' : 'border-slate-700 bg-slate-800/50 grayscale hover:grayscale-0'}
-                    `}
-                >
-                    <div className="w-full h-full flex flex-col items-center justify-center">
-                        <div className="w-10 h-10 mb-2 rounded-lg overflow-hidden shadow-md">
-                            <UnitIcon type={cmdId} size={24} />
-                        </div>
-                        <h3 className={`font-bold text-[10px] uppercase leading-none ${isSelected ? 'text-white' : 'text-slate-400'}`}>{cmd.name.split(' ')[1] || cmd.name}</h3>
+      {/* Carousel Container */}
+      <div className="relative w-full max-w-md h-64 flex items-center justify-center mb-8 perspective-1000">
+        {COMMANDER_ORDER.map((cmdId, index) => {
+          const cmd = COMMANDERS[cmdId];
+          const offset = index - activeIndex;
+          const isActive = index === activeIndex;
+          
+          // Visual calculation based on distance from center
+          let transform = 'translateX(0) scale(0.8) opacity(0)';
+          let zIndex = 0;
+          let opacity = 0.5;
+          
+          if (offset === 0) {
+            // Center
+            transform = 'translateX(0) scale(1.1)';
+            zIndex = 20;
+            opacity = 1;
+          } else if (Math.abs(offset) === 1) {
+            // Immediate neighbors
+            transform = `translateX(${offset * 120}px) scale(0.85) rotateY(${offset * -15}deg)`;
+            zIndex = 10;
+            opacity = 0.7;
+          } else if (Math.abs(offset) >= 2) {
+            // Outer cards
+            // Cap movement so they don't fly off screen too far
+            const dir = Math.sign(offset);
+            transform = `translateX(${dir * 200}px) scale(0.7) rotateY(${dir * -30}deg)`;
+            zIndex = 0;
+            opacity = 0.3;
+          }
+
+          return (
+            <div
+              key={cmdId}
+              onClick={() => handleCardClick(index)}
+              className={`
+                absolute w-32 h-40 rounded-xl border-2 transition-all duration-500 ease-out cursor-pointer shadow-2xl
+                flex flex-col items-center justify-center
+                ${isActive 
+                    ? 'bg-slate-800 border-yellow-500 shadow-[0_0_30px_rgba(234,179,8,0.4)]' 
+                    : 'bg-slate-900 border-slate-700 hover:border-slate-500 grayscale'
+                }
+              `}
+              style={{
+                transform,
+                zIndex,
+                opacity,
+                // We hide items that are too far away if desired, but opacity handles it well
+              }}
+            >
+                <div className="w-12 h-12 mb-3 rounded-lg overflow-hidden shadow-md">
+                     <UnitIcon type={cmdId} size={32} />
+                </div>
+                <h3 className={`font-bold text-[10px] uppercase leading-none ${isActive ? 'text-white' : 'text-slate-400'}`}>
+                    {cmd.shortName}
+                </h3>
+                {isActive && (
+                    <div className="absolute -bottom-3 bg-yellow-500 text-black text-[9px] font-bold px-2 py-0.5 rounded-full">
+                        SELECTED
                     </div>
-                </button>
-            );
+                )}
+            </div>
+          );
         })}
       </div>
 
       {/* Details Panel (Fixed Height) */}
-      <div className="w-full max-w-md h-36 bg-slate-800/80 rounded-lg p-4 border border-slate-700 mb-4 flex flex-col justify-center transition-all">
+      <div className="w-full max-w-md h-36 bg-slate-800/80 rounded-lg p-4 border border-slate-700 mb-6 flex flex-col justify-center transition-all relative overflow-hidden">
         {selectedCommander ? (
             <div className="animate-fade-in">
-                <h3 className="text-lg font-bold text-yellow-500 mb-1">{selectedCommander.name}</h3>
-                <p className="text-xs text-slate-300 mb-3 italic">"{selectedCommander.description}"</p>
-                <div className="flex items-center gap-2 text-white bg-slate-900/50 p-2 rounded border border-slate-600">
-                    <Zap size={16} className="shrink-0 text-yellow-400" />
+                <h3 className="text-xl font-black text-yellow-500 mb-1 uppercase">{selectedCommander.name}</h3>
+                <p className="text-xs text-slate-300 mb-4 italic">"{selectedCommander.description}"</p>
+                
+                <div className="flex items-start gap-3 text-white bg-slate-900/50 p-3 rounded border border-slate-600">
+                    <Zap size={18} className="shrink-0 text-yellow-400 mt-0.5" />
                     <div className="text-left">
-                        <span className="text-xs font-bold block uppercase text-yellow-400">Skill: {selectedCommander.skillName}</span>
+                        <span className="text-xs font-bold block uppercase text-yellow-400 mb-0.5">{selectedCommander.skillName}</span>
                         <span className="text-[10px] text-slate-300 leading-tight block">{selectedCommander.skillDesc}</span>
                     </div>
                 </div>
             </div>
-        ) : (
-            <p className="text-slate-500 text-sm">Select a Commander to view details.</p>
-        )}
+        ) : null}
       </div>
 
       {/* Start Button */}
-      {selectedId && (
-          <button 
-            onClick={() => onStart(selectedId)}
-            className="w-full max-w-xs py-4 bg-gradient-to-r from-yellow-600 to-red-600 hover:from-yellow-500 hover:to-red-500 text-white font-bold text-xl rounded-full shadow-lg animate-bounce border border-yellow-400/30"
-          >
-            START CAMPAIGN
-          </button>
-      )}
+      <button 
+        onClick={() => onStart(selectedId)}
+        className="w-full max-w-xs py-4 bg-gradient-to-r from-yellow-600 to-red-600 hover:from-yellow-500 hover:to-red-500 text-white font-black text-xl tracking-wider rounded-full shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-all border border-yellow-400/30"
+      >
+        <Play fill="currentColor" size={20} />
+        START CAMPAIGN
+      </button>
 
     </div>
   );
