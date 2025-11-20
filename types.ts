@@ -54,9 +54,11 @@ export interface BuffStats {
   moveSpeed?: number;
   hpRegen?: number; // % per second
   maxHp?: number; // Additive max HP
+  hp?: number; // Additive Current HP (for initialization)
   speedMultiplier?: number; // 1.0 is normal, 0.5 is faster (lower delay)
   label?: string; // Display name for UI
   description?: string; // Short description of effect
+  isCommanderBuff?: boolean; // If true, triggers unified visual effect (Golden Border)
 }
 
 export interface GridItem {

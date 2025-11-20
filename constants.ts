@@ -128,11 +128,11 @@ export const UNIT_UPGRADES: Partial<Record<UnitType, Partial<EntityStats>>> = {
 // NEW: Centralized Buff Configuration
 // Defines the numerical impact of specific buff keys
 export const BUFF_CONFIG: Record<string, BuffStats> = {
-  'FRENZY': { range: 1, label: 'Bloodlust', description: 'Melee range increased.' }, // Warlord Buff
-  'HEAL': { hpRegen: 0.02, label: 'Regeneration', description: 'Restores 2% HP per second.' }, // Guardian Buff
-  'ELF_RANGE': { range: 50, label: 'Eagle Eye', description: 'Massive attack range boost.' }, // Elf Passive
-  'SPEAR_CHARGE': { def: 15, moveSpeed: 0.25, label: 'Phalanx Charge', description: 'Defense and Speed massively increased while charging.' }, // Spear Charge state
-  'VANGUARD_PASSIVE': { maxHp: 100, moveSpeed: 0.03, label: 'Blitzkrieg', description: 'Spawned with +MaxHP and +MoveSpeed.' } // Vanguard Commander
+  'FRENZY': { maxHp: 50, hp: 50, range: 1, label: 'Bloodlust', description: 'Increase MaxHP and Melee range.', isCommanderBuff: true }, // Warlord Buff
+  'HEAL': { hpRegen: 0.02, label: 'Regeneration', description: 'Restores 2% HP per second.', isCommanderBuff: true }, // Guardian Buff
+  'ELF_RANGE': { range: 3, label: 'Eagle Eye', description: 'Massively increase AttackRange.', isCommanderBuff: true }, // Elf Passive
+  'SPEAR_CHARGE': { def: 15, moveSpeed: 0.25, label: 'Phalanx Charge', description: 'Massively increase Defense and MoveSpeed.' }, // Spear Charge state (Not a commander passive)
+  'VANGUARD_PASSIVE': { maxHp: 120, hp: 120, moveSpeed: 0.04, label: 'Blitzkrieg', description: 'Massively increase MaxHP and MoveSpeed.', isCommanderBuff: true } // Vanguard Commander
 };
 
 export const UNIT_COLORS: Record<UnitType, string> = {

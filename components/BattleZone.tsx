@@ -92,6 +92,9 @@ export const BattleZone: React.FC<BattleZoneProps> = (props) => {
              const effectiveStats = calculateEntityStats(ent);
              const healthRatio = ent.hp / effectiveStats.maxHp;
              
+             // Check for Unified Commander Buff
+             const hasCommanderBuff = ent.buffs.some(b => BUFF_CONFIG[b]?.isCommanderBuff);
+
              let filterStyle = '';
              if (ent.team === 'PLAYER') {
                  const b = 1 + (1 - healthRatio) * 1.2;
@@ -106,7 +109,10 @@ export const BattleZone: React.FC<BattleZoneProps> = (props) => {
                <div 
                 key={ent.id} 
                 onClick={() => handleEntityClick(ent)} 
-                className={`absolute transition-transform duration-100 will-change-transform cursor-pointer hover:scale-110 active:scale-95`} 
+                className={`
+                    absolute transition-transform duration-100 will-change-transform cursor-pointer hover:scale-110 active:scale-95 rounded-md
+                    ${hasCommanderBuff ? 'ring-2 ring-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.6)]' : ''}
+                `} 
                 style={{ 
                     left: `${ent.x}%`, 
                     top: `${ent.y}%`, 
@@ -130,15 +136,9 @@ export const BattleZone: React.FC<BattleZoneProps> = (props) => {
                      </div>
                  )}
 
-                 {/* Active Buff Indicators */}
+                 {/* Buff visual indicators removed in favor of unified golden border */}
                  {ent.buffs.includes('HEAL') && (
-                     <div className="absolute -top-2 right-0 text-green-400 animate-bounce"><Plus size={10} strokeWidth={4} /></div>
-                 )}
-                 {ent.buffs.includes('FRENZY') && (
-                     <div className="absolute -top-2 left-0 text-red-500 animate-pulse"><Zap size={10} strokeWidth={4} /></div>
-                 )}
-                 {ent.buffs.includes('ELF_RANGE') && (
-                     <div className="absolute -top-2 left-1/2 -translate-x-1/2 text-emerald-300 animate-pulse"><Target size={10} strokeWidth={4} /></div>
+                    <div className="absolute top-0 right-0 w-1 h-1 bg-green-400 rounded-full animate-ping" />
                  )}
                </div>
              );

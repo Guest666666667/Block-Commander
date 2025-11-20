@@ -2,7 +2,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { BattleEntity, Phase, UnitType, Projectile, VisualEffect, CommanderClass } from '../../types';
 import { UNIT_STATS, GAME_LEVELS, UNIT_UPGRADES, VICTORY_DELAY_MS, BUFF_CONFIG, DEFAULT_SPEED_MULTIPLIER } from '../../constants';
-import { getSpawnX, calculateEntityStats, hasCommanderClass } from './battleUtils';
+import { getSpawnX, calculateEntityStats } from './battleUtils';
 
 interface UseBattleLoopProps {
     allies: UnitType[];
@@ -35,15 +35,38 @@ export const useBattleLoop = ({ allies, level, phase, commanderUnitType, upgrade
         const configIndex = Math.min(level - 1, GAME_LEVELS.length - 1);
         const config = GAME_LEVELS[configIndex];
 
+        // Pre-calculate Enemy Commander presence for Spawn Logic
+        const hasEnemyWarlord = config.enemyCommanders?.includes(UnitType.COMMANDER_WARLORD);
+        const hasEnemyGuardian = config.enemyCommanders?.includes(UnitType.COMMANDER_GUARDIAN);
+        const hasEnemyElf = config.enemyCommanders?.includes(UnitType.COMMANDER_ELF);
+        const hasEnemyVanguard = config.enemyCommanders?.includes(UnitType.COMMANDER_VANGUARD);
+
         const spawnEnemy = (type: UnitType) => {
             const baseStats = UNIT_STATS[type];
             if (!baseStats) return;
             const enemyScale = (baseStats.scale || 1) * config.difficultyMult;
 
+            // Apply Commander Passives (Enemy) - AT SPAWN
+            const initialBuffs: string[] = [];
+            if (type === UnitType.INFANTRY && hasEnemyWarlord) initialBuffs.push('FRENZY');
+            if (type === UnitType.SHIELD && hasEnemyGuardian) initialBuffs.push('HEAL');
+            if (type === UnitType.ARCHER && hasEnemyElf) initialBuffs.push('ELF_RANGE');
+            if (type === UnitType.SPEAR && hasEnemyVanguard) initialBuffs.push('VANGUARD_PASSIVE');
+
+            let currentHp = Math.floor(baseStats.maxHp * config.difficultyMult);
+            
+            // Generic: Apply Initial HP Modifiers from Buffs
+            initialBuffs.forEach(buffId => {
+                const buffConfig = BUFF_CONFIG[buffId];
+                if (buffConfig && buffConfig.hp) {
+                    currentHp += buffConfig.hp;
+                }
+            });
+
             initialEnemies.push({
                 ...baseStats,
-                maxHp: Math.floor(baseStats.maxHp * config.difficultyMult),
-                hp: Math.floor(baseStats.maxHp * config.difficultyMult),
+                maxHp: Math.floor(baseStats.maxHp * config.difficultyMult), // Base MaxHP (Buffs added dynamically in calc)
+                hp: currentHp,
                 atk: Math.floor(baseStats.atk * config.difficultyMult),
                 scale: enemyScale,
                 id: `e-${level}-${type}-${idCounter++}`,
@@ -56,7 +79,7 @@ export const useBattleLoop = ({ allies, level, phase, commanderUnitType, upgrade
                 lastHitTime: 0,
                 aiState: type === UnitType.SPEAR ? 'WAITING' : 'NORMAL',
                 aiTimer: 0,
-                buffs: []
+                buffs: initialBuffs
             });
         };
 
@@ -105,16 +128,19 @@ export const useBattleLoop = ({ allies, level, phase, commanderUnitType, upgrade
                     }
                 }
                 
-                // VANGUARD Passive (Applied via Buff System, but we must init HP correctly)
-                if (type === UnitType.SPEAR && playerCmdClass === CommanderClass.VANGUARD) {
-                    const buffConfig = BUFF_CONFIG['VANGUARD_PASSIVE'];
-                    if (buffConfig) {
-                         // We don't modify stats.maxHp here directly because calculateEntityStats will do it via the buff.
-                         // However, we MUST increase the starting current HP, otherwise they spawn damaged.
-                         currentHp += (buffConfig.maxHp || 0);
-                         initialBuffs.push('VANGUARD_PASSIVE');
+                // Apply Commander Passives (Player) - AT SPAWN
+                if (type === UnitType.INFANTRY && playerCmdClass === CommanderClass.WARLORD) initialBuffs.push('FRENZY');
+                if (type === UnitType.SHIELD && playerCmdClass === CommanderClass.GUARDIAN) initialBuffs.push('HEAL');
+                if (type === UnitType.ARCHER && playerCmdClass === CommanderClass.ELF) initialBuffs.push('ELF_RANGE');
+                if (type === UnitType.SPEAR && playerCmdClass === CommanderClass.VANGUARD) initialBuffs.push('VANGUARD_PASSIVE');
+
+                // Generic: Apply Initial HP Modifiers from Buffs
+                initialBuffs.forEach(buffId => {
+                    const buffConfig = BUFF_CONFIG[buffId];
+                    if (buffConfig && buffConfig.hp) {
+                        currentHp += buffConfig.hp;
                     }
-                }
+                });
 
                 newEntities.push({
                     ...stats,
@@ -189,35 +215,18 @@ export const useBattleLoop = ({ allies, level, phase, commanderUnitType, upgrade
                 }
             }
 
-            // 3. Check Commanders for Auras
-            const playerWarlord = hasCommanderClass(players, 'PLAYER', CommanderClass.WARLORD);
-            const enemyWarlord = hasCommanderClass(enemies, 'ENEMY', CommanderClass.WARLORD);
-            const playerGuardian = hasCommanderClass(players, 'PLAYER', CommanderClass.GUARDIAN);
-            const enemyGuardian = hasCommanderClass(enemies, 'ENEMY', CommanderClass.GUARDIAN);
-            const playerElf = hasCommanderClass(players, 'PLAYER', CommanderClass.ELF);
-            const enemyElf = hasCommanderClass(enemies, 'ENEMY', CommanderClass.ELF);
-
-            // 4. Process Individual Entities
+            // 3. Process Individual Entities
             activeEnts.forEach(entity => {
                 const isPlayer = entity.team === 'PLAYER';
-                const hasWarlord = isPlayer ? playerWarlord : enemyWarlord;
-                const hasGuardian = isPlayer ? playerGuardian : enemyGuardian;
-                const hasElf = isPlayer ? playerElf : enemyElf;
 
-                // --- Apply Dynamic Aura Buffs ---
-                const toggleBuff = (buffId: string, active: boolean) => {
-                    if (active && !entity.buffs.includes(buffId)) entity.buffs.push(buffId);
-                    else if (!active && entity.buffs.includes(buffId)) entity.buffs = entity.buffs.filter(b => b !== buffId);
-                };
-
-                if (entity.type === UnitType.INFANTRY) toggleBuff('FRENZY', hasWarlord);
-                if (entity.type === UnitType.SHIELD) toggleBuff('HEAL', hasGuardian);
-                if (entity.type === UnitType.ARCHER) toggleBuff('ELF_RANGE', hasElf);
-
-                // --- Apply Spear Charge Buff State ---
+                // --- Apply Spear Charge Buff State (State Machine) ---
                 if (entity.type === UnitType.SPEAR) {
                     const isCharging = entity.aiState === 'WAITING' || entity.aiState === 'CHARGING';
-                    toggleBuff('SPEAR_CHARGE', isCharging);
+                    const buffId = 'SPEAR_CHARGE';
+                    const hasBuff = entity.buffs.includes(buffId);
+                    
+                    if (isCharging && !hasBuff) entity.buffs.push(buffId);
+                    else if (!isCharging && hasBuff) entity.buffs = entity.buffs.filter(b => b !== buffId);
                 }
 
                 // --- Calculate Effective Stats (Base + Upgrades + Buffs) ---
@@ -249,7 +258,6 @@ export const useBattleLoop = ({ allies, level, phase, commanderUnitType, upgrade
                         const targetX = entity.team === 'PLAYER' ? 90 : 10;
                         const distToTarget = Math.abs(targetX - entity.x);
                         
-                        // Use effective moveSpeed (which includes SPEAR_CHARGE buff) for logic now
                         const chargeSpeed = stats.moveSpeed * (delta / 16) * speedMultiplier;
                         
                         const dir = Math.sign(targetX - entity.x);
