@@ -1,16 +1,16 @@
 
 import React, { useState } from 'react';
 import { COMMANDERS } from '../constants';
-import { CommanderType, UnitType } from '../types';
+import { UnitType } from '../types';
 import { Zap } from 'lucide-react';
 import { UnitIcon } from './UnitIcon';
 
 interface StartScreenProps {
-  onStart: (commanderType: CommanderType) => void;
+  onStart: (commanderType: UnitType) => void;
 }
 
 export const StartScreen: React.FC<StartScreenProps> = ({ onStart }) => {
-  const [selectedId, setSelectedId] = useState<CommanderType | null>(null);
+  const [selectedId, setSelectedId] = useState<UnitType | null>(null);
 
   const selectedCommander = selectedId ? COMMANDERS[selectedId] : null;
 
@@ -18,13 +18,13 @@ export const StartScreen: React.FC<StartScreenProps> = ({ onStart }) => {
   // Slots: 0,1,2,3,4,5,6,7,8
   // 4 (Center) = Centurion
   // 0, 2, 6, 8 (Corners) = Others
-  const gridSlots: (CommanderType | null)[] = Array(9).fill(null);
+  const gridSlots: (UnitType | null)[] = Array(9).fill(null);
   
   const corners = [0, 2, 6, 8];
   let cornerIdx = 0;
 
   Object.values(COMMANDERS).forEach(cmd => {
-      if (cmd.id === CommanderType.CENTURION) {
+      if (cmd.id === UnitType.COMMANDER_CENTURION) {
           gridSlots[4] = cmd.id;
       } else {
           if (cornerIdx < corners.length) {
@@ -65,7 +65,7 @@ export const StartScreen: React.FC<StartScreenProps> = ({ onStart }) => {
                 >
                     <div className="w-full h-full flex flex-col items-center justify-center">
                         <div className="w-10 h-10 mb-2 rounded-lg overflow-hidden shadow-md">
-                            <UnitIcon type={UnitType.COMMANDER} subtype={cmd.id} size={24} />
+                            <UnitIcon type={cmdId} size={24} />
                         </div>
                         <h3 className={`font-bold text-[10px] uppercase leading-none ${isSelected ? 'text-white' : 'text-slate-400'}`}>{cmd.name.split(' ')[1] || cmd.name}</h3>
                     </div>

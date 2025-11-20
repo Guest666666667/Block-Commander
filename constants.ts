@@ -1,6 +1,6 @@
 
-import { UnitType, CommanderProfile, CommanderType, EntityStats } from './types';
-import { Box, Grid, Coins, Swords, Crosshair, ShieldCheck, Tent, Footprints, LucideIcon, Hammer } from 'lucide-react';
+import { UnitType, CommanderProfile, EntityStats, CommanderClass, BuffStats } from './types';
+import { Box, Grid, Coins, Swords, Crosshair, ShieldCheck, Tent, Footprints, Hammer } from 'lucide-react';
 
 export const INITIAL_GRID_SIZE = 3;
 export const MAX_GRID_SIZE = 5;
@@ -10,10 +10,10 @@ export const VICTORY_DELAY_MS = 2000;
 
 // DEBUG: Define units to spawn immediately with the Commander at game start
 export const INITIAL_ARMY_CONFIG: UnitType[] = [
-    // UnitType.INFANTRY,
-    // UnitType.SPEAR,
-    // UnitType.ARCHER,
-    UnitType.SHIELD
+    UnitType.INFANTRY,
+    UnitType.ARCHER,
+    UnitType.SHIELD,
+    UnitType.SPEAR
 ];
 
 // Steps per level: [Level 1, Level 2, ..., Level 6]
@@ -26,14 +26,22 @@ export const SCORING = {
   MATCH_5: 1000,
   RESHUFFLE_COST: -50,
   UNIT_SURVIVOR_BONUS: {
-    [UnitType.COMMANDER]: 800,
+    [UnitType.COMMANDER_CENTURION]: 800,
+    [UnitType.COMMANDER_ELF]: 800,
+    [UnitType.COMMANDER_WARLORD]: 800,
+    [UnitType.COMMANDER_GUARDIAN]: 800,
+    [UnitType.COMMANDER_VANGUARD]: 800,
     [UnitType.INFANTRY]: 100,
     [UnitType.ARCHER]: 100,
     [UnitType.SHIELD]: 150,
     [UnitType.SPEAR]: 200,
   } as Record<string, number>,
   KILL_SCORE: {
-    [UnitType.COMMANDER]: 400,
+    [UnitType.COMMANDER_CENTURION]: 400,
+    [UnitType.COMMANDER_ELF]: 400,
+    [UnitType.COMMANDER_WARLORD]: 400,
+    [UnitType.COMMANDER_GUARDIAN]: 400,
+    [UnitType.COMMANDER_VANGUARD]: 400,
     [UnitType.INFANTRY]: 50, 
     [UnitType.ARCHER]: 50,
     [UnitType.SHIELD]: 75,
@@ -42,58 +50,71 @@ export const SCORING = {
   } as Record<string, number>
 };
 
-export const COMMANDERS: Record<CommanderType, CommanderProfile> = {
-  [CommanderType.CENTURION]: {
-    id: CommanderType.CENTURION,
+// Keys are now the specific UnitType
+export const COMMANDERS: Record<string, CommanderProfile> = {
+  [UnitType.COMMANDER_CENTURION]: {
+    id: UnitType.COMMANDER_CENTURION,
     name: "Centurion",
     role: "Tactician",
     description: "A disciplined leader of the iron legion.",
     skillName: "Reinforce",
-    skillDesc: "At battle start, randomly recruits 1 adjacent soldier."
+    skillDesc: "At battle start, randomly recruits 1 adjacent soldier.",
+    class: CommanderClass.CENTURION
   },
-  [CommanderType.ELF]: {
-    id: CommanderType.ELF,
+  [UnitType.COMMANDER_ELF]: {
+    id: UnitType.COMMANDER_ELF,
     name: "Elven Ranger",
     role: "Sharpshooter",
     description: "A master of long-range warfare.",
     skillName: "Eagle Eye",
-    skillDesc: "All friendly Archers gain +50% Attack Range."
+    skillDesc: "All friendly Archers gain +50% Attack Range.",
+    class: CommanderClass.ELF
   },
-  [CommanderType.WARLORD]: {
-    id: CommanderType.WARLORD,
+  [UnitType.COMMANDER_WARLORD]: {
+    id: UnitType.COMMANDER_WARLORD,
     name: "Iron Warlord",
     role: "Berserker",
     description: "A brutal commander who leads from the front.",
     skillName: "Bloodlust",
-    skillDesc: "Friendly Infantry gain +1 Range and cause heavy impact."
+    skillDesc: "Friendly Infantry gain +1 Range and cause heavy impact.",
+    class: CommanderClass.WARLORD
   },
-  [CommanderType.GUARDIAN]: {
-    id: CommanderType.GUARDIAN,
+  [UnitType.COMMANDER_GUARDIAN]: {
+    id: UnitType.COMMANDER_GUARDIAN,
     name: "High Guardian",
     role: "Protector",
     description: "A stalwart defender of the weak.",
     skillName: "Phalanx",
-    skillDesc: "Friendly Shield units regenerate HP over time."
+    skillDesc: "Friendly Shield units regenerate HP over time.",
+    class: CommanderClass.GUARDIAN
   },
-  [CommanderType.VANGUARD]: {
-    id: CommanderType.VANGUARD,
+  [UnitType.COMMANDER_VANGUARD]: {
+    id: UnitType.COMMANDER_VANGUARD,
     name: "Storm Vanguard",
     role: "Shock Trooper",
     description: "A lightning-fast initiator.",
     skillName: "Blitzkrieg",
-    skillDesc: "Friendly Spear units gain +MaxHP and +MoveSpeed."
+    skillDesc: "Friendly Spear units gain +MaxHP and +MoveSpeed.",
+    class: CommanderClass.VANGUARD
   }
 };
 
 // Speed: Lower is faster (ms delay between attacks)
 // moveSpeed: Units per frame (approximate percentage of screen width)
 export const UNIT_STATS: Record<UnitType, EntityStats> = {
-  [UnitType.COMMANDER]: { hp: 500, maxHp: 500, atk: 22, range: 1, def: 7, speed: 1000, moveSpeed: 0.025, scale: 1.2 },
-  [UnitType.INFANTRY]: { hp: 100, maxHp: 100, atk: 15, range: 1, def: 5, speed: 800, moveSpeed: 0.05, scale: 1 }, // Fast mover
-  [UnitType.ARCHER]: { hp: 60, maxHp: 60, atk: 20, range: 6, def: 1, speed: 2000, moveSpeed: 0.025, scale: 0.8 },   // Slow mover
-  [UnitType.SHIELD]: { hp: 200, maxHp: 200, atk: 8, range: 1, def: 10, speed: 1500, moveSpeed: 0.02, scale: 1.1 }, // Very slow
-  [UnitType.SPEAR]: { hp: 120, maxHp: 120, atk: 25, range: 2, def: 8, speed: 900, moveSpeed: 0.04, scale: 1 }, // Average
-  [UnitType.OBSTACLE]: { hp: 500, maxHp: 500, atk: 0, range: 0, def: 0, speed: 99999, moveSpeed: 0, scale: 1 },
+  // --- COMMANDERS (Distinct Stats) ---
+  [UnitType.COMMANDER_CENTURION]: { hp: 500, maxHp: 500, atk: 22, range: 1, def: 7, speed: 1000, moveSpeed: 0.025, scale: 1.2, commanderClass: CommanderClass.CENTURION },
+  [UnitType.COMMANDER_ELF]:       { hp: 400, maxHp: 400, atk: 30, range: 5, def: 3, speed: 1500, moveSpeed: 0.03, scale: 1.1, commanderClass: CommanderClass.ELF },
+  [UnitType.COMMANDER_WARLORD]:   { hp: 600, maxHp: 600, atk: 28, range: 1, def: 5, speed: 800, moveSpeed: 0.04, scale: 1.3, commanderClass: CommanderClass.WARLORD },
+  [UnitType.COMMANDER_GUARDIAN]:  { hp: 800, maxHp: 800, atk: 15, range: 1, def: 15, speed: 1800, moveSpeed: 0.015, scale: 1.25, commanderClass: CommanderClass.GUARDIAN },
+  [UnitType.COMMANDER_VANGUARD]:  { hp: 450, maxHp: 450, atk: 35, range: 2, def: 6, speed: 900, moveSpeed: 0.06, scale: 1.2, commanderClass: CommanderClass.VANGUARD },
+
+  // --- SOLDIERS ---
+  [UnitType.INFANTRY]: { hp: 100, maxHp: 100, atk: 15, range: 1, def: 5, speed: 800, moveSpeed: 0.05, scale: 1, commanderClass: CommanderClass.NONE }, // Fast mover
+  [UnitType.ARCHER]:   { hp: 60, maxHp: 60, atk: 20, range: 6, def: 1, speed: 2000, moveSpeed: 0.025, scale: 0.8, commanderClass: CommanderClass.NONE },   // Slow mover
+  [UnitType.SHIELD]:   { hp: 200, maxHp: 200, atk: 8, range: 1, def: 10, speed: 1500, moveSpeed: 0.02, scale: 1.1, commanderClass: CommanderClass.NONE }, // Very slow
+  [UnitType.SPEAR]:    { hp: 120, maxHp: 120, atk: 25, range: 2, def: 8, speed: 900, moveSpeed: 0.04, scale: 1, commanderClass: CommanderClass.NONE }, // Average
+  [UnitType.OBSTACLE]: { hp: 500, maxHp: 500, atk: 0, range: 0, def: 0, speed: 99999, moveSpeed: 0, scale: 1, commanderClass: CommanderClass.NONE },
 };
 
 // Upgrade Config: Absolute values added to base stats
@@ -104,8 +125,23 @@ export const UNIT_UPGRADES: Partial<Record<UnitType, Partial<EntityStats>>> = {
   [UnitType.SPEAR]: { hp: 90, atk: 15, scale: 1.3 },
 };
 
+// NEW: Centralized Buff Configuration
+// Defines the numerical impact of specific buff keys
+export const BUFF_CONFIG: Record<string, BuffStats> = {
+  'FRENZY': { range: 1, label: 'Bloodlust', description: 'Melee range increased.' }, // Warlord Buff
+  'HEAL': { hpRegen: 0.02, label: 'Regeneration', description: 'Restores 2% HP per second.' }, // Guardian Buff
+  'ELF_RANGE': { range: 50, label: 'Eagle Eye', description: 'Massive attack range boost.' }, // Elf Passive
+  'SPEAR_CHARGE': { def: 15, moveSpeed: 0.25, label: 'Phalanx Charge', description: 'Defense and Speed massively increased while charging.' }, // Spear Charge state
+  'VANGUARD_PASSIVE': { maxHp: 100, moveSpeed: 0.03, label: 'Blitzkrieg', description: 'Spawned with +MaxHP and +MoveSpeed.' } // Vanguard Commander
+};
+
 export const UNIT_COLORS: Record<UnitType, string> = {
-  [UnitType.COMMANDER]: 'bg-yellow-700',
+  [UnitType.COMMANDER_CENTURION]: 'bg-orange-700',
+  [UnitType.COMMANDER_ELF]: 'bg-emerald-950',
+  [UnitType.COMMANDER_WARLORD]: 'bg-red-950',
+  [UnitType.COMMANDER_GUARDIAN]: 'bg-blue-950',
+  [UnitType.COMMANDER_VANGUARD]: 'bg-purple-950',
+  
   [UnitType.INFANTRY]: 'bg-red-900',
   [UnitType.ARCHER]: 'bg-emerald-900',
   [UnitType.SHIELD]: 'bg-blue-900',
@@ -122,7 +158,14 @@ export const SPAWN_CONFIG = {
     [UnitType.INFANTRY]: { base: 10, variance: 10 },
     [UnitType.SHIELD]: { base: 40, variance: 5 },
     [UnitType.SPEAR]: { base: 15, variance: 10 },
-    [UnitType.COMMANDER]: { base: 20, variance: 10 },
+    
+    // Commanders
+    [UnitType.COMMANDER_CENTURION]: { base: 20, variance: 10 },
+    [UnitType.COMMANDER_ELF]: { base: 10, variance: 10 },
+    [UnitType.COMMANDER_WARLORD]: { base: 30, variance: 10 },
+    [UnitType.COMMANDER_GUARDIAN]: { base: 35, variance: 10 },
+    [UnitType.COMMANDER_VANGUARD]: { base: 25, variance: 10 },
+    
     DEFAULT: { base: 10, variance: 10 }
   },
   ENEMY: {
@@ -130,7 +173,14 @@ export const SPAWN_CONFIG = {
     [UnitType.INFANTRY]: { base: 85, variance: 8 },
     [UnitType.SHIELD]: { base: 55, variance: 5 },
     [UnitType.SPEAR]: { base: 80, variance: 8 },
-    [UnitType.COMMANDER]: { base: 75, variance: 6 },
+    
+    // Commanders
+    [UnitType.COMMANDER_CENTURION]: { base: 75, variance: 6 },
+    [UnitType.COMMANDER_ELF]: { base: 85, variance: 6 },
+    [UnitType.COMMANDER_WARLORD]: { base: 70, variance: 6 },
+    [UnitType.COMMANDER_GUARDIAN]: { base: 60, variance: 6 },
+    [UnitType.COMMANDER_VANGUARD]: { base: 75, variance: 6 },
+
     DEFAULT: { base: 85, variance: 10 }
   }
 };
@@ -160,7 +210,7 @@ export const REWARD_DEFINITIONS: Record<string, RewardDef> = {
 export interface LevelConfig {
   difficultyMult: number; // Multiplier for Enemy Stats and Size
   unitCounts: Partial<Record<UnitType, number>>; // Enemy composition
-  enemyCommanders: CommanderType[];
+  enemyCommanders: UnitType[]; // Now uses specific UnitType keys
 }
 
 export const GAME_LEVELS: LevelConfig[] = [
@@ -186,18 +236,18 @@ export const GAME_LEVELS: LevelConfig[] = [
     // Level 4: Introduce Commander (Centurion)
     difficultyMult: 1.15, 
     unitCounts: { [UnitType.INFANTRY]: 9, [UnitType.ARCHER]: 7, [UnitType.SHIELD]: 3, [UnitType.SPEAR]: 1 }, 
-    enemyCommanders: [CommanderType.CENTURION] 
+    enemyCommanders: [UnitType.COMMANDER_CENTURION] 
   },
   { 
     // Level 5: Two Commanders
     difficultyMult: 1.2, 
     unitCounts: { [UnitType.INFANTRY]: 12, [UnitType.ARCHER]: 10, [UnitType.SHIELD]: 7, [UnitType.SPEAR]: 3 }, 
-    enemyCommanders: [CommanderType.WARLORD] 
+    enemyCommanders: [UnitType.COMMANDER_WARLORD] 
   },
   { 
     // Level 6: Boss Rush
     difficultyMult: 1.25, 
     unitCounts: { [UnitType.INFANTRY]: 18, [UnitType.ARCHER]: 15, [UnitType.SHIELD]: 10, [UnitType.SPEAR]: 6 }, 
-    enemyCommanders: [CommanderType.GUARDIAN, CommanderType.ELF] 
+    enemyCommanders: [UnitType.COMMANDER_GUARDIAN, UnitType.COMMANDER_ELF] 
   }
 ];

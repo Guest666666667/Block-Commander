@@ -114,7 +114,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({ stats, finalArmy
                       <h3 className="text-xs font-bold text-slate-500 uppercase mb-2">Enemies Defeated</h3>
                       {Object.entries(killCounts).map(([type, count]) => (
                           renderRow(
-                              type === UnitType.COMMANDER ? 'Enemy Commander' : type.replace('ENEMY_', ''), 
+                              type.startsWith('COMMANDER_') ? 'Enemy Commander' : type.replace('ENEMY_', ''), 
                               count, 
                               SCORING.KILL_SCORE[type] || 50,
                               <Crosshair size={14} className="text-red-400" />
@@ -129,7 +129,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({ stats, finalArmy
                       <h3 className="text-xs font-bold text-slate-500 uppercase mb-2">Survivors</h3>
                       {Object.entries(armyCounts).map(([type, count]) => (
                           renderRow(
-                              type === UnitType.COMMANDER ? 'Commander' : type, 
+                              type.startsWith('COMMANDER_') ? 'Commander' : type, 
                               count, 
                               SCORING.UNIT_SURVIVOR_BONUS[type] || 50,
                               <div className="w-4 h-4"><UnitIcon type={type as UnitType} size={16} /></div>

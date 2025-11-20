@@ -1,7 +1,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { 
-  GameState, Phase, CommanderType, UnitType, GridItem 
+  GameState, Phase, UnitType, GridItem 
 } from './types';
 import { 
   INITIAL_GRID_SIZE, LEVELS_PER_RUN, MAX_GRID_SIZE, LEVEL_STEPS, REWARD_DEFINITIONS, INITIAL_ARMY_CONFIG
@@ -21,7 +21,7 @@ const App: React.FC = () => {
     gridSize: INITIAL_GRID_SIZE,
     currentLevel: 1,
     maxLevels: LEVELS_PER_RUN,
-    commanderType: CommanderType.CENTURION,
+    commanderUnitType: UnitType.COMMANDER_CENTURION, // Default
     stepsRemaining: LEVEL_STEPS[0],
     reshufflesUsed: 0,
     summonQueue: [],
@@ -41,16 +41,16 @@ const App: React.FC = () => {
 
   // --- Actions ---
 
-  const startGame = (commanderType: CommanderType) => {
+  const startGame = (commanderUnitType: UnitType) => {
     setGameState(prev => ({
       ...prev,
       phase: Phase.PUZZLE,
-      commanderType,
+      commanderUnitType,
       currentLevel: 1,
       gridSize: INITIAL_GRID_SIZE,
       stepsRemaining: LEVEL_STEPS[0],
       reshufflesUsed: 0,
-      summonQueue: [UnitType.COMMANDER, ...INITIAL_ARMY_CONFIG], // Deploy Commander and Debug Army
+      summonQueue: [commanderUnitType, ...INITIAL_ARMY_CONFIG], // Deploy Selected Commander and Debug Army
       survivors: [],
       playerHp: 100,
       scavengerLevel: 0,
@@ -239,7 +239,7 @@ const App: React.FC = () => {
         stepsRemaining: nextSteps,
         reshufflesUsed: 0,
         phase: Phase.PUZZLE, 
-        summonQueue: [UnitType.COMMANDER, ...prev.survivors], 
+        summonQueue: [prev.commanderUnitType, ...prev.survivors], 
         survivors: [], 
         currentRewardIds: []
       };
@@ -252,7 +252,7 @@ const App: React.FC = () => {
         gridSize: INITIAL_GRID_SIZE,
         currentLevel: 1,
         maxLevels: LEVELS_PER_RUN,
-        commanderType: CommanderType.CENTURION,
+        commanderUnitType: UnitType.COMMANDER_CENTURION,
         stepsRemaining: LEVEL_STEPS[0],
         reshufflesUsed: 0,
         summonQueue: [],
@@ -293,7 +293,7 @@ const App: React.FC = () => {
           allies={gameState.summonQueue} 
           level={gameState.currentLevel}
           phase={gameState.phase}
-          commanderType={gameState.commanderType}
+          commanderUnitType={gameState.commanderUnitType}
           onBattleEnd={handleBattleEnd}
           upgrades={gameState.upgrades}
           rewardsHistory={gameState.rewardsHistory}

@@ -10,12 +10,28 @@ export enum Phase {
 }
 
 export enum UnitType {
-  COMMANDER = 'COMMANDER',
+  // Specific Commanders
+  COMMANDER_CENTURION = 'COMMANDER_CENTURION',
+  COMMANDER_ELF = 'COMMANDER_ELF',
+  COMMANDER_WARLORD = 'COMMANDER_WARLORD',
+  COMMANDER_GUARDIAN = 'COMMANDER_GUARDIAN',
+  COMMANDER_VANGUARD = 'COMMANDER_VANGUARD',
+
+  // Soldiers
   INFANTRY = 'INFANTRY', // Basic Melee
   ARCHER = 'ARCHER',     // Basic Range
   SHIELD = 'SHIELD',     // High Def (Unlock n=4)
   SPEAR = 'SPEAR',       // High Reach (Unlock n=5)
   OBSTACLE = 'OBSTACLE'
+}
+
+export enum CommanderClass {
+  NONE = 'NONE',
+  CENTURION = 'CENTURION',
+  ELF = 'ELF',
+  WARLORD = 'WARLORD',
+  GUARDIAN = 'GUARDIAN',
+  VANGUARD = 'VANGUARD'
 }
 
 export interface EntityStats {
@@ -27,6 +43,20 @@ export interface EntityStats {
   speed: number; // Lower is faster attack interval (ms)
   moveSpeed: number; // Movement speed (0.01 - 0.1 range recommended)
   scale: number; // Visual size multiplier
+  commanderClass: CommanderClass; // Identity tag
+}
+
+// New: For configuration-based buffs
+export interface BuffStats {
+  atk?: number;
+  def?: number;
+  range?: number;
+  moveSpeed?: number;
+  hpRegen?: number; // % per second
+  maxHp?: number; // Additive max HP
+  speedMultiplier?: number; // 1.0 is normal, 0.5 is faster (lower delay)
+  label?: string; // Display name for UI
+  description?: string; // Short description of effect
 }
 
 export interface GridItem {
@@ -37,18 +67,9 @@ export interface GridItem {
   isMatched?: boolean;
 }
 
-export enum CommanderType {
-  CENTURION = 'CENTURION', // Default
-  ELF = 'ELF',             // Archer Buff
-  WARLORD = 'WARLORD',     // Infantry Buff
-  GUARDIAN = 'GUARDIAN',   // Shield Buff
-  VANGUARD = 'VANGUARD'    // Spear Buff
-}
-
 export interface BattleEntity extends EntityStats {
   id: string;
   type: UnitType;
-  subtype?: CommanderType; // For Commanders: differentiate between Centurion, Elf, etc.
   x: number; // 0-100% (Left to Right)
   y: number; // 0-100% (Top to Bottom)
   team: 'PLAYER' | 'ENEMY';
@@ -85,12 +106,13 @@ export interface VisualEffect {
 }
 
 export interface CommanderProfile {
-  id: CommanderType;
+  id: UnitType; // Keyed by UnitType now
   name: string;
   role: string;
   description: string;
   skillName: string;
   skillDesc: string;
+  class: CommanderClass;
 }
 
 export interface ScoreStats {
@@ -107,25 +129,25 @@ export interface GameState {
   gridSize: number; // n
   currentLevel: number; // 1 to 6
   maxLevels: number;
-  commanderType: CommanderType;
+  commanderUnitType: UnitType; // Replaces commanderType enum
   stepsRemaining: number;
-  reshufflesUsed: number; // 0 = Free, 1 = cost 1, 2 = cost 2, etc.
-  summonQueue: UnitType[]; // Soldiers recruited during puzzle phase
+  reshufflesUsed: number; 
+  summonQueue: UnitType[]; 
   playerHp: number; 
   inventory: string[]; 
-  survivors: UnitType[]; // Units that survived the last battle
+  survivors: UnitType[]; 
   
   // New Mechanics
-  scavengerLevel: number; // 0 = disabled. >0 = Obstacles shuffle & generate units
-  commanderMoveRange: number; // 1 = adjacent. 2 = up to 2 steps.
-  maxRewardSelections: number; // Default 1. Greed increases this.
-  rewardsRemaining: number; // Tracks picks left in current victory phase
-  upgrades: UnitType[]; // List of unit types that have been upgraded
-  remodelLevel: number; // How many obstacles are replaced by units (Max 4)
+  scavengerLevel: number; 
+  commanderMoveRange: number; 
+  maxRewardSelections: number; 
+  rewardsRemaining: number; 
+  upgrades: UnitType[]; 
+  remodelLevel: number; 
   
   // Reward Randomization
   currentRewardIds: string[];
-  rewardsHistory: Record<string, number>; // Tracks how many times a reward was picked
+  rewardsHistory: Record<string, number>; 
   
   // Scoring
   scoreStats: ScoreStats;

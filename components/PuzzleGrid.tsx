@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
-import { GameState, GridItem, UnitType, CommanderType } from '../types';
+import { GameState, GridItem, UnitType, CommanderClass } from '../types';
 import { UnitIcon } from './UnitIcon';
 import { RefreshCw, Lock, Unlock } from 'lucide-react';
 
@@ -23,6 +24,13 @@ export const PuzzleGrid: React.FC<PuzzleGridProps> = ({ gameState, onSummon, onM
   useEffect(() => {
     setSteps(gameState.stepsRemaining);
   }, [gameState.stepsRemaining]);
+
+  // --- Helper Logic ---
+  const isSoldier = (t: UnitType) => [UnitType.INFANTRY, UnitType.ARCHER, UnitType.SHIELD, UnitType.SPEAR].includes(t);
+  
+  const isCommander = (t: UnitType) => t.startsWith('COMMANDER_');
+
+  const getCommander = () => grid.find(g => isCommander(g.type));
 
   // --- Initialization ---
   const initGrid = useCallback(() => {
@@ -56,8 +64,8 @@ export const PuzzleGrid: React.FC<PuzzleGridProps> = ({ gameState, onSummon, onM
     const items: GridItem[] = [];
     let idCounter = 0;
 
-    // Add Commander
-    items.push({ id: `gen-${idCounter++}`, type: UnitType.COMMANDER, row: 0, col: 0 });
+    // Add Commander (Use the specific type from gameState)
+    items.push({ id: `gen-${idCounter++}`, type: gameState.commanderUnitType, row: 0, col: 0 });
 
     // Add Obstacles
     for (let i = 0; i < obstacleCount; i++) {
@@ -94,7 +102,7 @@ export const PuzzleGrid: React.FC<PuzzleGridProps> = ({ gameState, onSummon, onM
 
     setGrid(items);
     setMatchedIds(new Set());
-  }, [gameState.gridSize, gameState.remodelLevel, isLocked]);
+  }, [gameState.gridSize, gameState.remodelLevel, gameState.commanderUnitType, isLocked]);
 
   useEffect(() => {
     if (!isLocked && grid.length === 0) {
@@ -104,12 +112,6 @@ export const PuzzleGrid: React.FC<PuzzleGridProps> = ({ gameState, onSummon, onM
     }
   }, [initGrid, isLocked, grid.length, gameState.gridSize]);
 
-
-  // --- Helper Logic ---
-
-  const isSoldier = (t: UnitType) => [UnitType.INFANTRY, UnitType.ARCHER, UnitType.SHIELD, UnitType.SPEAR].includes(t);
-
-  const getCommander = () => grid.find(g => g.type === UnitType.COMMANDER);
 
   const shuffleSoldiers = (currentGrid: GridItem[], forceAll = false): GridItem[] => {
     const includeObstacles = forceAll || gameState.scavengerLevel > 0;
@@ -361,10 +363,12 @@ export const PuzzleGrid: React.FC<PuzzleGridProps> = ({ gameState, onSummon, onM
   };
 
   const handlePhaseEnd = (finalGrid: GridItem[]) => {
-    const commander = finalGrid.find(c => c.type === UnitType.COMMANDER);
+    const commander = finalGrid.find(c => isCommander(c.type));
     let skillSummons: UnitType[] = [];
 
-    if (commander && gameState.commanderType === CommanderType.CENTURION) {
+    // Use CommanderType check via name/class if needed, or simpler:
+    // If the specific UnitType is COMMANDER_CENTURION
+    if (commander && commander.type === UnitType.COMMANDER_CENTURION) {
         const neighbors: UnitType[] = [];
         finalGrid.forEach(item => {
             if (isSoldier(item.type)) {
@@ -478,12 +482,12 @@ export const PuzzleGrid: React.FC<PuzzleGridProps> = ({ gameState, onSummon, onM
            style={{ gridTemplateColumns: `repeat(${gameState.gridSize}, minmax(0, 1fr))` }}
          >
            {sortedGrid.map((item) => {
-             const isCommander = item.type === UnitType.COMMANDER;
+             const isCmd = isCommander(item.type);
              const isMatched = matchedIds.has(item.id);
              const isUpgraded = gameState.upgrades.includes(item.type);
              let isValidTarget = false;
              
-             if (commander && !isCommander && !animating && steps > 0 && !isLocked) {
+             if (commander && !isCmd && !animating && steps > 0 && !isLocked) {
                 const dr = Math.abs(item.row - commander.row);
                 const dc = Math.abs(item.col - commander.col);
                 const range = gameState.commanderMoveRange || 1;
@@ -497,14 +501,13 @@ export const PuzzleGrid: React.FC<PuzzleGridProps> = ({ gameState, onSummon, onM
                  onClick={() => handleCellClick(item)}
                  className={`
                    ${cellSize} rounded-md cursor-pointer transition-all duration-300 relative
-                   ${isCommander ? 'ring-4 ring-yellow-500 z-10' : ''}
+                   ${isCmd ? 'ring-4 ring-yellow-500 z-10' : ''}
                    ${isMatched ? 'ring-2 ring-dashed ring-yellow-300 animate-bounce z-20' : ''}
                    hover:bg-white/5
                  `}
                >
                  <UnitIcon 
                     type={item.type} 
-                    subtype={isCommander ? gameState.commanderType : undefined}
                     isUpgraded={isUpgraded} 
                  />
                  {isValidTarget && (

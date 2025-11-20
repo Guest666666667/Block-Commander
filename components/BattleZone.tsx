@@ -1,439 +1,40 @@
 
-import React, { useEffect, useRef, useState } from 'react';
-import { BattleEntity, Phase, UnitType, Projectile, VisualEffect, CommanderType } from '../types';
-import { UNIT_STATS, GAME_LEVELS, DEFAULT_SPEED_MULTIPLIER, UNIT_UPGRADES, VICTORY_DELAY_MS, REWARD_DEFINITIONS, SPAWN_CONFIG } from '../constants';
+import React, { useState } from 'react';
+import { BattleEntity, Phase, UnitType } from '../types';
+import { REWARD_DEFINITIONS, BUFF_CONFIG } from '../constants';
 import { UnitIcon } from './UnitIcon';
-import { Play, MoveRight, Sparkles, Pause, X, Shield, Sword, Heart, Crosshair, Flag, Plus, Zap } from 'lucide-react';
+import { Play, MoveRight, Sparkles, Pause, X, Shield, Sword, Heart, Zap, Plus, Flag, Target, Footprints } from 'lucide-react';
+import { useBattleLoop } from './battle/useBattleLoop';
+import { calculateEntityStats } from './battle/battleUtils';
 
 interface BattleZoneProps {
   allies: UnitType[];
   level: number;
   phase: Phase;
-  commanderType: CommanderType;
+  commanderUnitType: UnitType; 
   onBattleEnd: (victory: boolean, survivors?: UnitType[], kills?: Record<string, number>) => void;
   upgrades?: UnitType[];
   rewardsHistory: Record<string, number>;
 }
 
-export const BattleZone: React.FC<BattleZoneProps> = ({ allies, level, phase, commanderType, onBattleEnd, upgrades = [], rewardsHistory = {} }) => {
-  const [entities, setEntities] = useState<BattleEntity[]>([]);
-  const [projectiles, setProjectiles] = useState<Projectile[]>([]);
-  const [effects, setEffects] = useState<VisualEffect[]>([]);
-  const [speedMultiplier, setSpeedMultiplier] = useState(DEFAULT_SPEED_MULTIPLIER);
-  const [isPaused, setIsPaused] = useState(false);
+export const BattleZone: React.FC<BattleZoneProps> = (props) => {
+  const {
+      entities,
+      projectiles,
+      effects,
+      speedMultiplier,
+      isPaused,
+      setSpeedMultiplier,
+      setIsPaused
+  } = useBattleLoop({
+    ...props,
+    upgrades: props.upgrades || []
+  });
+
   const [selectedEntity, setSelectedEntity] = useState<BattleEntity | null>(null);
-  
-  const frameRef = useRef<number>(0);
-  const lastTimeRef = useRef<number>(0);
-  const alliesProcessedCount = useRef<number>(0);
-  const isBattleEndingRef = useRef(false);
-  
-  const killsRef = useRef<Record<string, number>>({});
-  const processedDeathsRef = useRef<Set<string>>(new Set());
-
-  // --- Helpers ---
-
-  const getSpawnX = (type: UnitType, team: 'PLAYER' | 'ENEMY') => {
-    const config = team === 'ENEMY' ? SPAWN_CONFIG.ENEMY : SPAWN_CONFIG.PLAYER;
-    // @ts-ignore - dynamic property access
-    const spawnData = config[type] || config.DEFAULT;
-    return spawnData.base + (Math.random() * spawnData.variance);
-  };
-
-  const getEffectiveDef = (entity: BattleEntity) => {
-      if (entity.type === UnitType.SPEAR && entity.aiState && entity.aiState !== 'NORMAL') {
-          return entity.def * 2;
-      }
-      return entity.def;
-  };
-
-  // --- Initialization ---
-
-  useEffect(() => {
-    const initialEnemies: BattleEntity[] = [];
-    let idCounter = 0;
-    
-    const configIndex = Math.min(level - 1, GAME_LEVELS.length - 1);
-    const config = GAME_LEVELS[configIndex];
-
-    Object.entries(config.unitCounts).forEach(([typeStr, count]) => {
-        const type = typeStr as UnitType;
-        const baseStats = UNIT_STATS[type];
-        if (!baseStats) return;
-
-        const enemyScale = (baseStats.scale || 1) * config.difficultyMult;
-
-        for (let i = 0; i < count; i++) {
-            initialEnemies.push({
-                ...baseStats,
-                maxHp: Math.floor(baseStats.maxHp * config.difficultyMult),
-                hp: Math.floor(baseStats.maxHp * config.difficultyMult),
-                atk: Math.floor(baseStats.atk * config.difficultyMult),
-                scale: enemyScale,
-                id: `e-${level}-${type}-${idCounter++}`,
-                type: type,
-                team: 'ENEMY',
-                x: getSpawnX(type, 'ENEMY'),
-                y: 20 + (Math.random() * 60),
-                targetId: null,
-                lastAttackTime: 0,
-                lastHitTime: 0,
-                aiState: type === UnitType.SPEAR ? 'WAITING' : 'NORMAL',
-                aiTimer: 0,
-                buffs: []
-            });
-        }
-    });
-
-    if (config.enemyCommanders && config.enemyCommanders.length > 0) {
-        const cmdStats = UNIT_STATS[UnitType.COMMANDER];
-        const cmdScale = (cmdStats.scale || 1) * config.difficultyMult;
-
-        config.enemyCommanders.forEach((enemyCmdType) => {
-             initialEnemies.push({
-                ...cmdStats,
-                maxHp: Math.floor(cmdStats.maxHp * config.difficultyMult),
-                hp: Math.floor(cmdStats.maxHp * config.difficultyMult),
-                atk: Math.floor(cmdStats.atk * config.difficultyMult),
-                scale: cmdScale,
-                id: `e-cmd-${level}-${idCounter++}`,
-                type: UnitType.COMMANDER,
-                subtype: enemyCmdType,
-                team: 'ENEMY',
-                x: getSpawnX(UnitType.COMMANDER, 'ENEMY'),
-                y: 20 + (Math.random() * 60),
-                targetId: null,
-                lastAttackTime: 0,
-                lastHitTime: 0,
-                aiState: 'NORMAL',
-                aiTimer: 0,
-                buffs: []
-            });
-        });
-    }
-    
-    setEntities(initialEnemies);
-    setProjectiles([]);
-    setEffects([]);
-    setSelectedEntity(null);
-    alliesProcessedCount.current = 0;
-    isBattleEndingRef.current = false;
-    setIsPaused(false);
-    killsRef.current = {};
-    processedDeathsRef.current = new Set();
-  }, [level]);
-
-  useEffect(() => {
-    if (allies.length > alliesProcessedCount.current) {
-      const newUnits = allies.slice(alliesProcessedCount.current);
-      const newEntities: BattleEntity[] = [];
-      
-      newUnits.forEach((type, idx) => {
-         const base = UNIT_STATS[type];
-         let stats = { ...base };
-
-         if (upgrades.includes(type)) {
-             const bonus = UNIT_UPGRADES[type];
-             if (bonus) {
-                 stats.maxHp += (bonus.hp || 0);
-                 stats.hp += (bonus.hp || 0);
-                 stats.atk += (bonus.atk || 0);
-                 stats.def += (bonus.def || 0);
-                 stats.moveSpeed += (bonus.moveSpeed || 0);
-                 if (bonus.scale) stats.scale = bonus.scale;
-             }
-         }
-         
-         // Commander Passive: VANGUARD
-         // Friendly Spears get HP and Speed buff
-         if (type === UnitType.SPEAR && commanderType === CommanderType.VANGUARD) {
-             stats.maxHp += 50; 
-             stats.hp += 50;
-             stats.moveSpeed += 0.02;
-         }
-
-         newEntities.push({
-            ...stats,
-            id: `p-${Date.now()}-${idx}`,
-            type,
-            subtype: type === UnitType.COMMANDER ? commanderType : undefined,
-            team: 'PLAYER',
-            x: getSpawnX(type, 'PLAYER'),
-            y: 20 + (Math.random() * 60),
-            targetId: null,
-            lastAttackTime: 0,
-            lastHitTime: 0,
-            aiState: type === UnitType.SPEAR ? 'WAITING' : 'NORMAL',
-            aiTimer: 0,
-            buffs: []
-         });
-      });
-
-      setEntities(prev => [...prev, ...newEntities]);
-      alliesProcessedCount.current = allies.length;
-    }
-  }, [allies, upgrades, commanderType]);
-
-  useEffect(() => {
-    lastTimeRef.current = performance.now();
-    frameRef.current = requestAnimationFrame(loop);
-
-    return () => cancelAnimationFrame(frameRef.current);
-  }, [phase, speedMultiplier, isPaused, commanderType]);
-
-  const loop = (time: number) => {
-    const delta = time - lastTimeRef.current;
-    lastTimeRef.current = time;
-
-    if (phase === Phase.BATTLE && !isPaused) {
-      updateGameLogic(time, delta);
-    }
-
-    frameRef.current = requestAnimationFrame(loop);
-  };
-
-  const updateGameLogic = (time: number, delta: number) => {
-    setEntities(prevEnts => {
-      // Process Deaths
-      prevEnts.forEach(e => {
-          if (e.hp <= 0 && e.team === 'ENEMY' && !processedDeathsRef.current.has(e.id)) {
-              processedDeathsRef.current.add(e.id);
-              killsRef.current[e.type] = (killsRef.current[e.type] || 0) + 1;
-          }
-      });
-
-      let activeEnts = prevEnts.filter(e => e.hp > 0);
-      const players = activeEnts.filter(e => e.team === 'PLAYER');
-      const enemies = activeEnts.filter(e => e.team === 'ENEMY');
-
-      // --- Commander Aura Detection ---
-      const playerElf = players.some(p => p.subtype === CommanderType.ELF);
-      const enemyElf = enemies.some(e => e.subtype === CommanderType.ELF);
-      
-      const playerWarlord = players.some(p => p.subtype === CommanderType.WARLORD);
-      const enemyWarlord = enemies.some(e => e.subtype === CommanderType.WARLORD);
-      
-      const playerGuardian = players.some(p => p.subtype === CommanderType.GUARDIAN);
-      const enemyGuardian = enemies.some(e => e.subtype === CommanderType.GUARDIAN);
-
-      // Victory Check
-      if (!isBattleEndingRef.current) {
-        if (players.length === 0 && enemies.length > 0) {
-            isBattleEndingRef.current = true;
-            onBattleEnd(false, [], killsRef.current);
-        } else if (enemies.length === 0 && players.length > 0) {
-            isBattleEndingRef.current = true;
-            setTimeout(() => {
-                const survivors = players.filter(p => p.type !== UnitType.COMMANDER).map(p => p.type);
-                onBattleEnd(true, survivors, killsRef.current);
-            }, VICTORY_DELAY_MS);
-        } else if (players.length === 0 && enemies.length === 0 && prevEnts.length > 0) {
-            isBattleEndingRef.current = true;
-            onBattleEnd(false, [], killsRef.current);
-        }
-      }
-
-      activeEnts.forEach(entity => {
-        // --- Apply Aura Buffs ---
-        
-        const isPlayer = entity.team === 'PLAYER';
-        const hasWarlord = isPlayer ? playerWarlord : enemyWarlord;
-        const hasGuardian = isPlayer ? playerGuardian : enemyGuardian;
-
-        // Warlord Logic (FRENZY)
-        if (entity.type === UnitType.INFANTRY) {
-            if (hasWarlord && !entity.buffs.includes('FRENZY')) {
-                entity.buffs.push('FRENZY');
-            } else if (!hasWarlord && entity.buffs.includes('FRENZY')) {
-                entity.buffs = entity.buffs.filter(b => b !== 'FRENZY');
-            }
-        }
-
-        // Guardian Logic (HEAL)
-        if (entity.type === UnitType.SHIELD) {
-             if (hasGuardian && !entity.buffs.includes('HEAL')) {
-                entity.buffs.push('HEAL');
-             } else if (!hasGuardian && entity.buffs.includes('HEAL')) {
-                entity.buffs = entity.buffs.filter(b => b !== 'HEAL');
-             }
-        }
-
-        // --- Process Passive Buff Effects ---
-        
-        // HEAL Effect
-        if (entity.buffs.includes('HEAL')) {
-            if (entity.hp < entity.maxHp) {
-                // Heal 2% max HP per second approx
-                const healAmount = (entity.maxHp * 0.02) * (delta / 1000) * speedMultiplier;
-                entity.hp = Math.min(entity.maxHp, entity.hp + healAmount);
-                
-                // Visual for healing (chance to spawn particle)
-                if (Math.random() < 0.01 * speedMultiplier) {
-                    setEffects(prev => [...prev, {
-                        id: `heal-${Date.now()}-${Math.random()}`,
-                        x: entity.x, 
-                        y: entity.y - 2, 
-                        type: 'HEAL', 
-                        createdAt: time, 
-                        duration: 600 
-                    }]);
-                }
-            }
-        }
-
-        // --- Spear Charge Logic ---
-        if (entity.type === UnitType.SPEAR && entity.aiState && entity.aiState !== 'NORMAL') {
-            entity.aiTimer = (entity.aiTimer || 0) + (delta * speedMultiplier);
-            if (entity.aiState === 'WAITING') {
-                if (entity.aiTimer >= 2000) entity.aiState = 'CHARGING';
-                return;
-            }
-            if (entity.aiState === 'CHARGING') {
-                const targetX = entity.team === 'PLAYER' ? 90 : 10;
-                const distToTarget = Math.abs(targetX - entity.x);
-                const chargeSpeed = (entity.moveSpeed || 0.04) * 8 * (delta / 16) * speedMultiplier;
-                const dir = Math.sign(targetX - entity.x);
-                entity.x += dir * chargeSpeed;
-                if (distToTarget < 2) entity.aiState = 'NORMAL';
-                return;
-            }
-        }
-
-        // --- Standard AI ---
-        const targets = entity.team === 'PLAYER' ? enemies : players;
-        let minDist = 10000;
-        let bestTarget: BattleEntity | null = null;
-        targets.forEach(t => {
-            const dist = Math.hypot(t.x - entity.x, t.y - entity.y);
-            if (dist < minDist) { minDist = dist; bestTarget = t; }
-        });
-        
-        const target = bestTarget || undefined;
-        entity.targetId = target ? target.id : null;
-
-        if (target) {
-            const dist = Math.hypot(target.x - entity.x, target.y - entity.y);
-            let rangeThreshold = 5; 
-            if (entity.range > 5) rangeThreshold = 45;
-            else if (entity.range > 1.5) rangeThreshold = 15;
-
-            // Apply Buffs: Range
-            if (entity.type === UnitType.ARCHER) {
-                if (isPlayer && playerElf) rangeThreshold *= 1.5;
-                else if (!isPlayer && enemyElf) rangeThreshold *= 1.5;
-            }
-            
-            // Warlord Range Buff
-            if (entity.buffs.includes('FRENZY')) {
-                rangeThreshold += 10; // +1 Grid Range approx visually
-            }
-
-            if (dist <= rangeThreshold) {
-              const effectiveCooldown = entity.speed / speedMultiplier;
-              if (time - entity.lastAttackTime > effectiveCooldown) {
-                entity.lastAttackTime = time;
-
-                if (entity.range > 3) {
-                   // Ranged Attack
-                   setProjectiles(prev => [
-                     ...prev, 
-                     {
-                       id: `proj-${Date.now()}-${Math.random()}`,
-                       x: entity.x,
-                       y: entity.y,
-                       targetId: target!.id,
-                       damage: Math.max(1, entity.atk - getEffectiveDef(target!)),
-                       speed: 0.08 * speedMultiplier,
-                       rotation: Math.atan2(target!.y - entity.y, target!.x - entity.x) * (180 / Math.PI),
-                       opacity: 1
-                     }
-                   ]);
-                } else {
-                  // Melee Attack
-                  const dmg = Math.max(1, entity.atk - getEffectiveDef(target));
-                  target.hp -= dmg;
-                  target.lastHitTime = time;
-                  
-                  // Check for Warlord VFX
-                  const isSlash = entity.buffs.includes('FRENZY');
-
-                  setEffects(prev => [
-                    ...prev,
-                    {
-                      id: `vfx-${Date.now()}-${Math.random()}`,
-                      x: target!.x,
-                      y: target!.y,
-                      type: isSlash ? 'SLASH' : 'HIT',
-                      createdAt: time,
-                      duration: 300
-                    }
-                  ]);
-                }
-              }
-            } else {
-              // Move
-              const moveSpeed = (entity.moveSpeed || 0.03) * (delta / 16) * speedMultiplier;
-              const vx = (target.x - entity.x) / dist;
-              const vy = (target.y - entity.y) / dist;
-              entity.x += vx * moveSpeed;
-              entity.y += vy * moveSpeed;
-            }
-        }
-      });
-
-      return activeEnts;
-    });
-
-    // --- Projectiles ---
-    setEntities(currentEntities => {
-        let nextEntities = [...currentEntities];
-        let hitOccurred = false;
-
-        setProjectiles(currentProjs => {
-            let nextProjs: Projectile[] = [];
-            currentProjs.forEach(p => {
-                const target = nextEntities.find(e => e.id === p.targetId);
-                let tx = p.x, ty = p.y; 
-                let targetFound = false;
-                if (target) { tx = target.x; ty = target.y; targetFound = true; }
-
-                let dx, dy, dist;
-                if (targetFound) {
-                    dx = tx - p.x; dy = ty - p.y; dist = Math.hypot(dx, dy);
-                } else {
-                    const rad = p.rotation * (Math.PI / 180);
-                    dx = Math.cos(rad) * 100; dy = Math.sin(rad) * 100; dist = 1000;
-                }
-                
-                if (targetFound && dist < 2) {
-                    target!.hp -= p.damage;
-                    target!.lastHitTime = time;
-                    hitOccurred = true;
-                    setEffects(prev => [...prev, { id: `vfx-${Date.now()}-${Math.random()}`, x: target!.x, y: target!.y, type: 'HIT', createdAt: time, duration: 300 }]);
-                } else {
-                    let moveAmt = p.speed * (delta / 16);
-                    let newX = p.x, newY = p.y;
-                    if (targetFound) {
-                        const vx = dx / dist; const vy = dy / dist;
-                        newX += vx * moveAmt; newY += vy * moveAmt;
-                    } else {
-                        const rad = p.rotation * (Math.PI / 180);
-                        newX += Math.cos(rad) * moveAmt; newY += Math.sin(rad) * moveAmt;
-                    }
-                    let newOpacity = p.opacity ?? 1;
-                    if (!targetFound) newOpacity -= 0.05;
-                    if (newOpacity > 0) nextProjs.push({ ...p, x: newX, y: newY, rotation: p.rotation, opacity: newOpacity });
-                }
-            });
-            return nextProjs;
-        });
-        return hitOccurred ? nextEntities : currentEntities;
-    });
-
-    setEffects(prev => prev.filter(e => time - e.createdAt < e.duration));
-  };
 
   const toggleSpeed = () => setSpeedMultiplier(prev => prev === 3 ? 1 : prev + 1);
+  
   const togglePause = () => {
     setIsPaused(prev => {
         const newState = !prev;
@@ -441,15 +42,16 @@ export const BattleZone: React.FC<BattleZoneProps> = ({ allies, level, phase, co
         return newState;
     });
   };
+  
   const handleSurrender = () => {
-      if (isBattleEndingRef.current) return;
-      isBattleEndingRef.current = true;
-      onBattleEnd(false, [], killsRef.current);
+      props.onBattleEnd(false);
   };
+
   const handleEntityClick = (entity: BattleEntity) => {
       if (!isPaused) setIsPaused(true);
       setSelectedEntity(entity);
   };
+
   const handleCloseModal = () => {
       setSelectedEntity(null);
       setIsPaused(false);
@@ -484,9 +86,11 @@ export const BattleZone: React.FC<BattleZoneProps> = ({ allies, level, phase, co
              if (ent.hp <= 0) return null;
              const zIndex = Math.floor(ent.y * 100);
              const isHit = performance.now() - ent.lastHitTime < 150;
-             const isUpgraded = upgrades.includes(ent.type) && ent.team === 'PLAYER';
+             const isUpgraded = props.upgrades?.includes(ent.type) && ent.team === 'PLAYER';
              const scale = ent.scale || 1;
-             const healthRatio = ent.hp / ent.maxHp;
+             
+             const effectiveStats = calculateEntityStats(ent);
+             const healthRatio = ent.hp / effectiveStats.maxHp;
              
              let filterStyle = '';
              if (ent.team === 'PLAYER') {
@@ -516,7 +120,7 @@ export const BattleZone: React.FC<BattleZoneProps> = ({ allies, level, phase, co
                  <div className="w-full h-full animate-spawn-unit">
                     <div className={`w-full h-full transition-all duration-75 ${isHit ? 'brightness-200 sepia saturate-200 hue-rotate-[-50deg]' : ''}`}
                         style={{ transform: `scale(${ent.team === 'ENEMY' ? '-1, 1' : '1, 1'})` }}>
-                        <UnitIcon type={ent.type} subtype={ent.subtype} isUpgraded={isUpgraded} />
+                        <UnitIcon type={ent.type} isUpgraded={isUpgraded} />
                     </div>
                  </div>
                  
@@ -532,6 +136,9 @@ export const BattleZone: React.FC<BattleZoneProps> = ({ allies, level, phase, co
                  )}
                  {ent.buffs.includes('FRENZY') && (
                      <div className="absolute -top-2 left-0 text-red-500 animate-pulse"><Zap size={10} strokeWidth={4} /></div>
+                 )}
+                 {ent.buffs.includes('ELF_RANGE') && (
+                     <div className="absolute -top-2 left-1/2 -translate-x-1/2 text-emerald-300 animate-pulse"><Target size={10} strokeWidth={4} /></div>
                  )}
                </div>
              );
@@ -550,7 +157,7 @@ export const BattleZone: React.FC<BattleZoneProps> = ({ allies, level, phase, co
        <div className="absolute top-2 right-2 text-[10px] text-red-400/70 font-mono pointer-events-none border border-red-900/50 bg-black/20 px-2 py-1 rounded z-50">ENEMIES: {aliveEnemies}</div>
 
        <div className="absolute bottom-2 left-2 flex gap-2 z-40">
-            {Object.entries(rewardsHistory).map(([id, count]) => {
+            {Object.entries(props.rewardsHistory).map(([id, count]) => {
                 const def = REWARD_DEFINITIONS[id];
                 if (!def) return null;
                 if (id.startsWith('UPGRADE_')) return null; 
@@ -579,36 +186,102 @@ export const BattleZone: React.FC<BattleZoneProps> = ({ allies, level, phase, co
            </button>
        </div>
 
-       {isPaused && selectedEntity && (
-           <div className="absolute inset-0 z-[60] flex items-center justify-center p-8" onClick={handleCloseModal}>
-               <div className="bg-slate-800 border-2 border-slate-600 rounded-xl p-4 shadow-2xl max-w-xs w-full relative animate-fade-in" onClick={(e) => e.stopPropagation()}>
-                   <button onClick={handleCloseModal} className="absolute top-2 right-2 text-slate-400 hover:text-white"><X size={20} /></button>
-                   <div className="flex items-center gap-4 mb-4">
-                        <div className={`w-14 h-14 rounded-lg p-2 border-2 ${selectedEntity.team === 'PLAYER' ? 'bg-green-900/50 border-green-500' : 'bg-red-900/50 border-red-500'}`}>
-                            <UnitIcon type={selectedEntity.type} subtype={selectedEntity.subtype} isUpgraded={upgrades.includes(selectedEntity.type) && selectedEntity.team === 'PLAYER'} />
-                        </div>
-                        <div>
-                            <h3 className={`font-bold text-lg uppercase ${selectedEntity.team === 'PLAYER' ? 'text-green-400' : 'text-red-400'}`}>{selectedEntity.type}</h3>
-                            <span className="text-xs text-slate-400 px-2 py-0.5 bg-slate-900 rounded">{selectedEntity.team === 'PLAYER' ? 'ALLY' : 'ENEMY'} UNIT</span>
-                        </div>
-                   </div>
-                   <div className="space-y-2 text-sm">
-                       <div className="flex justify-between items-center bg-slate-900/50 px-2 py-1 rounded"><div className="flex items-center gap-2 text-slate-300"><Heart size={14} /> HP</div><span className="font-mono text-white">{Math.ceil(selectedEntity.hp)} / {selectedEntity.maxHp}</span></div>
-                       <div className="flex justify-between items-center bg-slate-900/50 px-2 py-1 rounded"><div className="flex items-center gap-2 text-slate-300"><Sword size={14} /> ATK</div><span className="font-mono text-white">{selectedEntity.atk}</span></div>
-                       <div className="flex justify-between items-center bg-slate-900/50 px-2 py-1 rounded"><div className="flex items-center gap-2 text-slate-300"><Shield size={14} /> DEF</div>
-                           <span className="font-mono text-white">
-                               {getEffectiveDef(selectedEntity)} 
-                               {selectedEntity.def !== getEffectiveDef(selectedEntity) && <span className="text-yellow-400 text-xs ml-1">(BUFF)</span>}
-                           </span>
+       {isPaused && selectedEntity && (() => {
+           const effectiveStats = calculateEntityStats(selectedEntity);
+           
+           const renderStatBox = (icon: React.ReactNode, current: number, base: number, isFloat: boolean, multiplier = 1) => {
+                const val = current * multiplier;
+                const baseVal = base * multiplier;
+                const diff = val - baseVal;
+                
+                // For float, fix to 1 decimal. For int, round.
+                const display = isFloat ? val.toFixed(1) : Math.round(val);
+                const displayDiff = isFloat ? diff.toFixed(1) : Math.round(diff);
+                const hasBonus = diff > (isFloat ? 0.05 : 0);
+
+                return (
+                    <div className="bg-slate-900/60 rounded-lg p-2 flex flex-col items-center justify-center border border-slate-700/50 relative h-14">
+                        <div className="text-slate-400 mb-0.5 scale-90">{icon}</div>
+                        <span className="font-mono font-bold text-white text-lg leading-none">{display}</span>
+                        {hasBonus && (
+                            <span className="text-[9px] font-bold text-green-400 absolute top-1 right-1">+{displayDiff}</span>
+                        )}
+                    </div>
+                )
+           }
+
+           return (
+             <div className="absolute inset-0 z-[60] flex items-center justify-center p-8" onClick={handleCloseModal}>
+               <div className="bg-slate-800 border-2 border-slate-600 rounded-xl p-5 shadow-2xl max-w-sm w-full relative animate-fade-in" onClick={(e) => e.stopPropagation()}>
+                   
+                   {/* Compact Header */}
+                   <div className="flex justify-between items-start mb-6">
+                       <div className="flex items-center gap-4">
+                           <div className={`w-14 h-14 rounded-lg p-2 border-2 shadow-inner ${selectedEntity.team === 'PLAYER' ? 'bg-green-900/50 border-green-500' : 'bg-red-900/50 border-red-500'}`}>
+                               <UnitIcon type={selectedEntity.type} isUpgraded={props.upgrades?.includes(selectedEntity.type) && selectedEntity.team === 'PLAYER'} />
+                           </div>
+                           <div>
+                               <h3 className={`font-black text-xl uppercase tracking-wide ${selectedEntity.team === 'PLAYER' ? 'text-green-400' : 'text-red-400'}`}>
+                                   {selectedEntity.type.replace('COMMANDER_', '').replace('INFANTRY', 'INF.').replace('OBSTACLE', 'OBST.')}
+                               </h3>
+                               <span className="text-[10px] font-bold text-slate-500 bg-slate-900 px-1.5 py-0.5 rounded uppercase tracking-wider">
+                                    LV.{props.level} {selectedEntity.team === 'PLAYER' ? 'ALLY' : 'ENEMY'}
+                               </span>
+                           </div>
                        </div>
-                       <div className="flex justify-between items-center bg-slate-900/50 px-2 py-1 rounded">
-                           <div className="flex items-center gap-2 text-slate-300"><Zap size={14} /> BUFFS</div>
-                           <span className="font-mono text-yellow-400 text-xs">{selectedEntity.buffs.length > 0 ? selectedEntity.buffs.join(', ') : 'NONE'}</span>
+                       
+                       <div className="flex flex-col items-end gap-1">
+                            <button onClick={handleCloseModal} className="text-slate-400 hover:text-white p-1 bg-slate-900 rounded-full hover:bg-slate-700 transition-colors">
+                                <X size={18} />
+                            </button>
+                           <div className="flex items-center gap-2 text-2xl font-mono font-bold text-slate-200">
+                               <Heart size={18} className="text-red-500 fill-red-500" />
+                               <span>
+                                   <span className={selectedEntity.hp < effectiveStats.maxHp ? "text-red-400" : "text-white"}>
+                                       {Math.ceil(selectedEntity.hp)}
+                                   </span>
+                                   <span className="text-slate-500 text-lg">/{effectiveStats.maxHp}</span>
+                               </span>
+                           </div>
                        </div>
                    </div>
+
+                   {/* Compact Stats Grid */}
+                   <div className="grid grid-cols-4 gap-2 mb-4">
+                        {renderStatBox(<Sword size={18}/>, effectiveStats.atk, selectedEntity.atk, false)}
+                        {renderStatBox(<Shield size={18}/>, effectiveStats.def, selectedEntity.def, false)}
+                        {renderStatBox(<Target size={18}/>, effectiveStats.range, selectedEntity.range, true)}
+                        {renderStatBox(<Footprints size={18}/>, effectiveStats.moveSpeed, selectedEntity.moveSpeed, true, 100)} 
+                   </div>
+                   
+                   {/* Buffs Section */}
+                   {selectedEntity.buffs.length > 0 && (
+                       <div className="bg-slate-900/50 px-3 py-2 rounded border border-slate-700/50">
+                           <div className="flex items-center gap-2 text-slate-400 text-xs font-bold mb-2 uppercase tracking-wider"><Zap size={12} /> Active Effects</div>
+                           <div className="w-full space-y-2">
+                               {selectedEntity.buffs.map(b => {
+                                   const conf = BUFF_CONFIG[b];
+                                   return (
+                                       <div key={b} className="text-xs bg-black/30 px-2 py-1.5 rounded flex flex-col">
+                                           <div className="flex items-center gap-1 text-yellow-400 font-bold">
+                                               <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 inline-block"></span>
+                                               {conf?.label || b}
+                                           </div>
+                                           {conf?.description && (
+                                               <div className="text-slate-400 text-[10px] leading-tight mt-0.5 pl-3 opacity-80">
+                                                   {conf.description}
+                                               </div>
+                                           )}
+                                       </div>
+                                   );
+                               })}
+                           </div>
+                       </div>
+                   )}
                </div>
-           </div>
-       )}
+             </div>
+           );
+       })()}
     </div>
   );
 };
