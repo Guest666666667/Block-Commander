@@ -116,27 +116,32 @@ export const PuzzleGrid: React.FC<PuzzleGridProps> = ({ gameState, onSummon, onB
     return newGrid;
   };
 
+  const RESHUFFLE_COST = 3;
+  const canAffordReshuffle = steps >= RESHUFFLE_COST;
+
   const clickReshuffleBtn = () => {
       if (isLocked || animating) return;
-      // Unlimited uses allowed, as long as user pays cost
+      if (!canAffordReshuffle) return; 
       setShowReshuffleModal(true);
   }
 
   const confirmReshuffle = () => {
-      const RESHUFFLE_COST = 3;
-      
-      // Explicitly check against GameState to avoid sync issues
-      if (gameState.stepsRemaining < RESHUFFLE_COST) return;
+      // Check against local steps to ensure validity
+      if (steps < RESHUFFLE_COST) return;
 
       // Perform Reset
       const newGrid = shuffleSoldiers(grid, true); 
       setGrid(newGrid);
+      
+      // Update local steps immediately
+      const newSteps = steps - RESHUFFLE_COST;
+      setSteps(newSteps);
+
+      // Notify parent (mostly for stats, steps logic is handled locally here)
       onReshufflePay(RESHUFFLE_COST);
       setShowReshuffleModal(false);
       
-      // Reshuffle never obeys Strategy Lock - it always triggers a check
       // Logic check: if steps become 0 here, it will end phase after timeout.
-      const newSteps = gameState.stepsRemaining - RESHUFFLE_COST;
       setTimeout(() => {
          processMatchesAndShuffle(newGrid, newSteps);
       }, 300);
@@ -151,8 +156,10 @@ export const PuzzleGrid: React.FC<PuzzleGridProps> = ({ gameState, onSummon, onB
 
     const dr = Math.abs(clickedItem.row - commander.row);
     const dc = Math.abs(clickedItem.col - commander.col);
+    const dist = dr + dc;
+    const range = gameState.commanderMoveRange || 1;
     
-    const isValidMove = (dr + dc === 1);
+    const isValidMove = (dist > 0 && dist <= range);
 
     if (isValidMove) {
       performSwap(commander, clickedItem);
@@ -272,6 +279,12 @@ export const PuzzleGrid: React.FC<PuzzleGridProps> = ({ gameState, onSummon, onB
     const processBuffer = (buffer: GridItem[]) => {
         if (buffer.length >= 3) {
             const type = buffer[0].type;
+            
+            // CRITICAL FIX: If type is Obstacle and Scavenger is NOT active (level 0), ignore entirely.
+            if (type === UnitType.OBSTACLE && gameState.scavengerLevel === 0) {
+                return;
+            }
+
             buffer.forEach(m => matchedIds.add(m.id));
 
             if (isSoldier(type)) {
@@ -363,9 +376,6 @@ export const PuzzleGrid: React.FC<PuzzleGridProps> = ({ gameState, onSummon, onB
   });
   const commander = getCommander();
   
-  const RESHUFFLE_COST = 3;
-  const canAffordReshuffle = gameState.stepsRemaining >= RESHUFFLE_COST;
-
   return (
     <div className={`h-full w-full bg-gray-800 flex flex-col items-center p-2 relative transition-all duration-1000 ${isLocked ? 'grayscale brightness-50 pointer-events-none' : ''}`}>
       {!isLocked && (
@@ -390,9 +400,10 @@ export const PuzzleGrid: React.FC<PuzzleGridProps> = ({ gameState, onSummon, onB
       {!isLocked && (
           <button 
             onClick={clickReshuffleBtn}
+            disabled={!canAffordReshuffle}
             className={`
                 absolute bottom-4 right-4 w-14 h-14 rounded-full shadow-lg flex flex-col items-center justify-center z-30 border-2 transition-all
-                ${!canAffordReshuffle ? 'bg-gray-600 border-gray-500 opacity-50' : 'bg-yellow-700 border-yellow-400 text-white hover:scale-110'}
+                ${!canAffordReshuffle ? 'bg-gray-600 border-gray-500 opacity-50 cursor-not-allowed' : 'bg-yellow-700 border-yellow-400 text-white hover:scale-110'}
             `}
           >
             <RefreshCw size={18} className="mb-0.5" />
@@ -449,11 +460,16 @@ export const PuzzleGrid: React.FC<PuzzleGridProps> = ({ gameState, onSummon, onB
              const isMatched = matchedIds.has(item.id);
              const isUpgraded = gameState.upgrades.includes(item.type);
              let isValidTarget = false;
+             
              if (commander && !isCommander && !animating && steps > 0 && !isLocked) {
                 const dr = Math.abs(item.row - commander.row);
                 const dc = Math.abs(item.col - commander.col);
-                isValidTarget = (dr + dc === 1);
+                const range = gameState.commanderMoveRange || 1;
+                // Use Manhattan Distance for range check
+                const dist = dr + dc;
+                isValidTarget = (dist > 0 && dist <= range);
              }
+
              return (
                <div
                  key={item.id}

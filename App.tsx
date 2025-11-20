@@ -28,6 +28,7 @@ const App: React.FC = () => {
     inventory: [],
     survivors: [],
     scavengerLevel: 0,
+    commanderMoveRange: 1,
     maxRewardSelections: 1,
     rewardsRemaining: 0,
     upgrades: [],
@@ -50,6 +51,7 @@ const App: React.FC = () => {
       survivors: [],
       playerHp: 100,
       scavengerLevel: 0,
+      commanderMoveRange: 1,
       maxRewardSelections: 1,
       rewardsRemaining: 0,
       upgrades: [],
@@ -68,7 +70,9 @@ const App: React.FC = () => {
   const handleReshufflePay = (cost: number) => {
     setGameState(prev => ({
       ...prev,
-      stepsRemaining: Math.max(0, prev.stepsRemaining - cost),
+      // Note: We do NOT decrement stepsRemaining here. 
+      // Step logic is handled locally in PuzzleGrid to avoid race conditions/sync issues 
+      // between rapid moves and parent state updates.
       reshufflesUsed: prev.reshufflesUsed + 1
     }));
   };
@@ -94,6 +98,11 @@ const App: React.FC = () => {
       
       // SCAVENGER (Unlimited)
       pool.push('SCAVENGER');
+
+      // AGILITY (Max 1 time - adds +1 range)
+      if ((history['AGILITY'] || 0) < 1) {
+          pool.push('AGILITY');
+      }
 
       // GREED (Max 1 time)
       if ((history['GREED'] || 0) < 1) {
@@ -145,6 +154,7 @@ const App: React.FC = () => {
       let newSize = prev.gridSize;
       let newScavenger = prev.scavengerLevel;
       let newMaxRewards = prev.maxRewardSelections;
+      let newMoveRange = prev.commanderMoveRange;
       const currentUpgrades = [...prev.upgrades];
       const newHistory = { ...prev.rewardsHistory };
       
@@ -158,6 +168,8 @@ const App: React.FC = () => {
             newScavenger += 1;
         } else if (rewardId === 'GREED') {
             newMaxRewards += 1;
+        } else if (rewardId === 'AGILITY') {
+            newMoveRange += 1;
         } else if (rewardId.startsWith('UPGRADE_')) {
             const type = rewardId.replace('UPGRADE_', '') as UnitType;
             if (!currentUpgrades.includes(type)) {
@@ -175,6 +187,7 @@ const App: React.FC = () => {
         gridSize: newSize,
         scavengerLevel: newScavenger,
         maxRewardSelections: newMaxRewards,
+        commanderMoveRange: newMoveRange,
         upgrades: currentUpgrades,
         rewardsRemaining: 0,
         rewardsHistory: newHistory,

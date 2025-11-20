@@ -1,6 +1,6 @@
 
 import { UnitType, CommanderProfile, CommanderType, EntityStats } from './types';
-import { Box, Grid, Coins, Swords, Crosshair, ShieldCheck, Tent, LucideIcon } from 'lucide-react';
+import { Box, Grid, Coins, Swords, Crosshair, ShieldCheck, Tent, Footprints, LucideIcon } from 'lucide-react';
 
 export const INITIAL_GRID_SIZE = 3;
 export const MAX_GRID_SIZE = 5;
@@ -75,6 +75,7 @@ export const REWARD_DEFINITIONS: Record<string, RewardDef> = {
   'EXPAND': { id: 'EXPAND', label: 'Expand', desc: 'Increase board size by 1. Adds new Unit types.', icon: Grid },
   'SCAVENGER': { id: 'SCAVENGER', label: 'Scavenger', desc: 'Obstacle lines (3+) summon units passively.', icon: Box },
   'GREED': { id: 'GREED', label: 'Greed', desc: '+1 Reward Selection for future victories.', icon: Coins },
+  'AGILITY': { id: 'AGILITY', label: 'Agility', desc: 'Commander Move Range +1.', icon: Footprints },
   [`UPGRADE_${UnitType.INFANTRY}`]: { id: `UPGRADE_${UnitType.INFANTRY}`, label: 'Elite Inf.', desc: '+HP, +ATK, Larger Size.', icon: Swords },
   [`UPGRADE_${UnitType.ARCHER}`]: { id: `UPGRADE_${UnitType.ARCHER}`, label: 'Elite Arch.', desc: '+HP, +ATK, Larger Size.', icon: Crosshair },
   [`UPGRADE_${UnitType.SHIELD}`]: { id: `UPGRADE_${UnitType.SHIELD}`, label: 'Elite Shld.', desc: '+HP, +DEF, Larger Size.', icon: ShieldCheck },

@@ -98,6 +98,7 @@ export interface GameState {
   
   // New Mechanics
   scavengerLevel: number; // 0 = disabled. >0 = Obstacles shuffle & generate units
+  commanderMoveRange: number; // 1 = adjacent. 2 = up to 2 steps.
   maxRewardSelections: number; // Default 1. Greed increases this.
   rewardsRemaining: number; // Tracks picks left in current victory phase
   upgrades: UnitType[]; // List of unit types that have been upgraded
