@@ -40,7 +40,7 @@ export interface EntityStats {
   atk: number;
   range: number; // 1 = melee, 3+ = range
   def: number;
-  speed: number; // Lower is faster attack interval (ms)
+  atkSpeed: number; // Attack Interval in ms (Lower is faster)
   moveSpeed: number; // Movement speed (0.01 - 0.1 range recommended)
   scale: number; // Visual size multiplier
   commanderClass: CommanderClass; // Identity tag
@@ -55,6 +55,7 @@ export interface BuffStats {
   hpRegen?: number; // % per second
   maxHp?: number; // Additive max HP
   hp?: number; // Additive Current HP (for initialization)
+  atkSpeed?: number; // Additive Attack Interval (e.g. -500 means 500ms faster)
   speedMultiplier?: number; // 1.0 is normal, 0.5 is faster (lower delay)
   label?: string; // Display name for UI
   description?: string; // Short description of effect

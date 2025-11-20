@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { BattleEntity, Phase, UnitType } from '../types';
 import { REWARD_DEFINITIONS, BUFF_CONFIG } from '../constants';
 import { UnitIcon } from './UnitIcon';
-import { Play, MoveRight, Sparkles, Pause, X, Shield, Sword, Heart, Zap, Plus, Flag, Target, Footprints } from 'lucide-react';
+import { Play, MoveRight, Sparkles, Pause, X, Shield, Sword, Heart, Zap, Plus, Flag, Target, Footprints, Timer } from 'lucide-react';
 import { useBattleLoop } from './battle/useBattleLoop';
 import { calculateEntityStats } from './battle/battleUtils';
 
@@ -16,6 +16,27 @@ interface BattleZoneProps {
   upgrades?: UnitType[];
   rewardsHistory: Record<string, number>;
 }
+
+const getUnitGlowColor = (type: UnitType): string => {
+    switch (type) {
+      case UnitType.INFANTRY:
+      case UnitType.COMMANDER_WARLORD:
+        return '#ef4444'; // Red-500
+      case UnitType.ARCHER:
+      case UnitType.COMMANDER_ELF:
+        return '#10b981'; // Emerald-500
+      case UnitType.SHIELD:
+      case UnitType.COMMANDER_GUARDIAN:
+        return '#3b82f6'; // Blue-500
+      case UnitType.SPEAR:
+      case UnitType.COMMANDER_VANGUARD:
+        return '#a855f7'; // Purple-500
+      case UnitType.COMMANDER_CENTURION:
+        return '#f97316'; // Orange-500
+      default:
+        return '#eab308'; // Yellow-500
+    }
+};
 
 export const BattleZone: React.FC<BattleZoneProps> = (props) => {
   const {
@@ -94,6 +115,7 @@ export const BattleZone: React.FC<BattleZoneProps> = (props) => {
              
              // Check for Unified Commander Buff
              const hasCommanderBuff = ent.buffs.some(b => BUFF_CONFIG[b]?.isCommanderBuff);
+             const glowColor = getUnitGlowColor(ent.type);
 
              let filterStyle = '';
              if (ent.team === 'PLAYER') {
@@ -111,7 +133,6 @@ export const BattleZone: React.FC<BattleZoneProps> = (props) => {
                 onClick={() => handleEntityClick(ent)} 
                 className={`
                     absolute transition-transform duration-100 will-change-transform cursor-pointer hover:scale-110 active:scale-95 rounded-md
-                    ${hasCommanderBuff ? 'ring-2 ring-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.6)]' : ''}
                 `} 
                 style={{ 
                     left: `${ent.x}%`, 
@@ -121,6 +142,7 @@ export const BattleZone: React.FC<BattleZoneProps> = (props) => {
                     width: '32px', 
                     height: '32px',
                     filter: filterStyle,
+                    boxShadow: hasCommanderBuff ? `0 0 10px 2px ${glowColor}` : undefined
                 }}
                >
                  <div className="w-full h-full animate-spawn-unit">
@@ -136,7 +158,7 @@ export const BattleZone: React.FC<BattleZoneProps> = (props) => {
                      </div>
                  )}
 
-                 {/* Buff visual indicators removed in favor of unified golden border */}
+                 {/* Buff visual indicators removed in favor of unified aura */}
                  {ent.buffs.includes('HEAL') && (
                     <div className="absolute top-0 right-0 w-1 h-1 bg-green-400 rounded-full animate-ping" />
                  )}
@@ -197,12 +219,15 @@ export const BattleZone: React.FC<BattleZoneProps> = (props) => {
                 // For float, fix to 1 decimal. For int, round.
                 const display = isFloat ? val.toFixed(1) : Math.round(val);
                 const displayDiff = isFloat ? diff.toFixed(1) : Math.round(diff);
+                
+                // Use logic: if value > baseValue, it is improved (green).
+                // Note: For atkSpeed, we pass in 1000/speed, so higher is better (more APS).
                 const hasBonus = diff > (isFloat ? 0.05 : 0);
 
                 return (
                     <div className="bg-slate-900/60 rounded-lg p-2 flex flex-col items-center justify-center border border-slate-700/50 relative h-14">
                         <div className="text-slate-400 mb-0.5 scale-90">{icon}</div>
-                        <span className="font-mono font-bold text-white text-lg leading-none">{display}</span>
+                        <span className={`font-mono font-bold text-lg leading-none ${hasBonus ? 'text-green-400' : 'text-white'}`}>{display}</span>
                         {hasBonus && (
                             <span className="text-[9px] font-bold text-green-400 absolute top-1 right-1">+{displayDiff}</span>
                         )}
@@ -247,10 +272,11 @@ export const BattleZone: React.FC<BattleZoneProps> = (props) => {
                    </div>
 
                    {/* Compact Stats Grid */}
-                   <div className="grid grid-cols-4 gap-2 mb-4">
+                   <div className="grid grid-cols-5 gap-2 mb-4">
                         {renderStatBox(<Sword size={18}/>, effectiveStats.atk, selectedEntity.atk, false)}
                         {renderStatBox(<Shield size={18}/>, effectiveStats.def, selectedEntity.def, false)}
                         {renderStatBox(<Target size={18}/>, effectiveStats.range, selectedEntity.range, true)}
+                        {renderStatBox(<Timer size={18}/>, 1000 / effectiveStats.atkSpeed, 1000 / selectedEntity.atkSpeed, true)}
                         {renderStatBox(<Footprints size={18}/>, effectiveStats.moveSpeed, selectedEntity.moveSpeed, true, 100)} 
                    </div>
                    

@@ -67,7 +67,7 @@ export const COMMANDERS: Record<string, CommanderProfile> = {
     role: "Sharpshooter",
     description: "A master of long-range warfare.",
     skillName: "Eagle Eye",
-    skillDesc: "All friendly Archers gain +50% Attack Range.",
+    skillDesc: "All friendly Archers gain +Attack Range and +Attack Speed.",
     class: CommanderClass.ELF
   },
   [UnitType.COMMANDER_WARLORD]: {
@@ -99,22 +99,22 @@ export const COMMANDERS: Record<string, CommanderProfile> = {
   }
 };
 
-// Speed: Lower is faster (ms delay between attacks)
+// atkSpeed: Lower is faster (ms delay between attacks)
 // moveSpeed: Units per frame (approximate percentage of screen width)
 export const UNIT_STATS: Record<UnitType, EntityStats> = {
   // --- COMMANDERS (Distinct Stats) ---
-  [UnitType.COMMANDER_CENTURION]: { hp: 500, maxHp: 500, atk: 22, range: 1, def: 7, speed: 1000, moveSpeed: 0.025, scale: 1.2, commanderClass: CommanderClass.CENTURION },
-  [UnitType.COMMANDER_ELF]:       { hp: 400, maxHp: 400, atk: 30, range: 5, def: 3, speed: 1500, moveSpeed: 0.03, scale: 1.1, commanderClass: CommanderClass.ELF },
-  [UnitType.COMMANDER_WARLORD]:   { hp: 600, maxHp: 600, atk: 28, range: 1, def: 5, speed: 800, moveSpeed: 0.04, scale: 1.3, commanderClass: CommanderClass.WARLORD },
-  [UnitType.COMMANDER_GUARDIAN]:  { hp: 800, maxHp: 800, atk: 15, range: 1, def: 15, speed: 1800, moveSpeed: 0.015, scale: 1.25, commanderClass: CommanderClass.GUARDIAN },
-  [UnitType.COMMANDER_VANGUARD]:  { hp: 450, maxHp: 450, atk: 35, range: 2, def: 6, speed: 900, moveSpeed: 0.06, scale: 1.2, commanderClass: CommanderClass.VANGUARD },
+  [UnitType.COMMANDER_CENTURION]: { hp: 500, maxHp: 500, atk: 22, range: 1, def: 7, atkSpeed: 1000, moveSpeed: 0.025, scale: 1.2, commanderClass: CommanderClass.CENTURION },
+  [UnitType.COMMANDER_ELF]:       { hp: 400, maxHp: 400, atk: 30, range: 5, def: 3, atkSpeed: 1500, moveSpeed: 0.03, scale: 1.1, commanderClass: CommanderClass.ELF },
+  [UnitType.COMMANDER_WARLORD]:   { hp: 600, maxHp: 600, atk: 28, range: 1, def: 5, atkSpeed: 800, moveSpeed: 0.04, scale: 1.3, commanderClass: CommanderClass.WARLORD },
+  [UnitType.COMMANDER_GUARDIAN]:  { hp: 800, maxHp: 800, atk: 15, range: 1, def: 15, atkSpeed: 1800, moveSpeed: 0.015, scale: 1.25, commanderClass: CommanderClass.GUARDIAN },
+  [UnitType.COMMANDER_VANGUARD]:  { hp: 450, maxHp: 450, atk: 35, range: 2, def: 6, atkSpeed: 900, moveSpeed: 0.06, scale: 1.2, commanderClass: CommanderClass.VANGUARD },
 
   // --- SOLDIERS ---
-  [UnitType.INFANTRY]: { hp: 100, maxHp: 100, atk: 15, range: 1, def: 5, speed: 800, moveSpeed: 0.05, scale: 1, commanderClass: CommanderClass.NONE }, // Fast mover
-  [UnitType.ARCHER]:   { hp: 60, maxHp: 60, atk: 20, range: 6, def: 1, speed: 2000, moveSpeed: 0.025, scale: 0.8, commanderClass: CommanderClass.NONE },   // Slow mover
-  [UnitType.SHIELD]:   { hp: 200, maxHp: 200, atk: 8, range: 1, def: 10, speed: 1500, moveSpeed: 0.02, scale: 1.1, commanderClass: CommanderClass.NONE }, // Very slow
-  [UnitType.SPEAR]:    { hp: 120, maxHp: 120, atk: 25, range: 2, def: 8, speed: 900, moveSpeed: 0.04, scale: 1, commanderClass: CommanderClass.NONE }, // Average
-  [UnitType.OBSTACLE]: { hp: 500, maxHp: 500, atk: 0, range: 0, def: 0, speed: 99999, moveSpeed: 0, scale: 1, commanderClass: CommanderClass.NONE },
+  [UnitType.INFANTRY]: { hp: 100, maxHp: 100, atk: 15, range: 1, def: 5, atkSpeed: 800, moveSpeed: 0.05, scale: 1, commanderClass: CommanderClass.NONE }, // Fast mover
+  [UnitType.ARCHER]:   { hp: 60, maxHp: 60, atk: 20, range: 6, def: 1, atkSpeed: 2000, moveSpeed: 0.025, scale: 0.8, commanderClass: CommanderClass.NONE },   // Slow mover
+  [UnitType.SHIELD]:   { hp: 200, maxHp: 200, atk: 8, range: 1, def: 10, atkSpeed: 1500, moveSpeed: 0.02, scale: 1.1, commanderClass: CommanderClass.NONE }, // Very slow
+  [UnitType.SPEAR]:    { hp: 120, maxHp: 120, atk: 25, range: 2, def: 8, atkSpeed: 900, moveSpeed: 0.04, scale: 1, commanderClass: CommanderClass.NONE }, // Average
+  [UnitType.OBSTACLE]: { hp: 500, maxHp: 500, atk: 0, range: 0, def: 0, atkSpeed: 99999, moveSpeed: 0, scale: 1, commanderClass: CommanderClass.NONE },
 };
 
 // Upgrade Config: Absolute values added to base stats
@@ -130,7 +130,7 @@ export const UNIT_UPGRADES: Partial<Record<UnitType, Partial<EntityStats>>> = {
 export const BUFF_CONFIG: Record<string, BuffStats> = {
   'FRENZY': { maxHp: 50, hp: 50, range: 1, label: 'Bloodlust', description: 'Increase MaxHP and Melee range.', isCommanderBuff: true }, // Warlord Buff
   'HEAL': { hpRegen: 0.02, label: 'Regeneration', description: 'Restores 2% HP per second.', isCommanderBuff: true }, // Guardian Buff
-  'ELF_RANGE': { range: 3, label: 'Eagle Eye', description: 'Massively increase AttackRange.', isCommanderBuff: true }, // Elf Passive
+  'ELF_RANGE': { range: 3, atkSpeed: -500, label: 'Eagle Eye', description: 'Massively increase Attack Range and Attack Speed.', isCommanderBuff: true }, // Elf Passive
   'SPEAR_CHARGE': { def: 15, moveSpeed: 0.25, label: 'Phalanx Charge', description: 'Massively increase Defense and MoveSpeed.' }, // Spear Charge state (Not a commander passive)
   'VANGUARD_PASSIVE': { maxHp: 120, hp: 120, moveSpeed: 0.04, label: 'Blitzkrieg', description: 'Massively increase MaxHP and MoveSpeed.', isCommanderBuff: true } // Vanguard Commander
 };

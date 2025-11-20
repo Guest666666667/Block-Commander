@@ -289,8 +289,8 @@ export const useBattleLoop = ({ allies, level, phase, commanderUnitType, upgrade
                     const dist = Math.hypot(target.x - entity.x, target.y - entity.y);
 
                     if (dist <= rangeThreshold) {
-                        // Attack
-                        const effectiveCooldown = stats.speed / speedMultiplier;
+                        // Attack - Use stats.atkSpeed (ms)
+                        const effectiveCooldown = stats.atkSpeed / speedMultiplier;
                         if (time - entity.lastAttackTime > effectiveCooldown) {
                             entity.lastAttackTime = time;
 

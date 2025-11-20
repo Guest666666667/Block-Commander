@@ -25,6 +25,7 @@ export const calculateEntityStats = (entity: BattleEntity): EntityStats => {
     let finalMoveSpeed = base.moveSpeed;
     let finalAtk = base.atk;
     let finalMaxHp = base.maxHp;
+    let finalAtkSpeed = base.atkSpeed; // Interval (ms)
 
     // Apply Buffs from Configuration
     entity.buffs.forEach(buffId => {
@@ -35,6 +36,8 @@ export const calculateEntityStats = (entity: BattleEntity): EntityStats => {
             if (mod.moveSpeed) finalMoveSpeed += mod.moveSpeed;
             if (mod.atk) finalAtk += mod.atk;
             if (mod.maxHp) finalMaxHp += mod.maxHp;
+            if (mod.atkSpeed) finalAtkSpeed += mod.atkSpeed; // Additive reduction/increase to interval
+            if (mod.speedMultiplier) finalAtkSpeed *= mod.speedMultiplier; // Multiplicative
         }
     });
 
@@ -44,7 +47,8 @@ export const calculateEntityStats = (entity: BattleEntity): EntityStats => {
         range: finalRange,
         moveSpeed: finalMoveSpeed,
         atk: finalAtk,
-        maxHp: finalMaxHp
+        maxHp: finalMaxHp,
+        atkSpeed: Math.max(50, finalAtkSpeed) // Cap minimum interval at 50ms
     };
 };
 
