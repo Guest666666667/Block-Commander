@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { GameState } from '../types';
+import { GameState } from '../../types';
 import { Flag, Skull } from 'lucide-react';
 
 interface MapZoneProps {

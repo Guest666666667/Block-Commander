@@ -4,16 +4,18 @@ import {
   GameState, Phase, UnitType, GridItem 
 } from './types';
 import { 
-  INITIAL_GRID_SIZE, LEVELS_PER_RUN, MAX_GRID_SIZE, LEVEL_STEPS, REWARD_DEFINITIONS, INITIAL_ARMY_CONFIG, MAX_PER_UNIT_COUNT
+  INITIAL_GRID_SIZE, LEVELS_PER_RUN, INITIAL_ARMY_CONFIG, SCORING
 } from './constants';
+import { LEVEL_STEPS } from './components/map/levelConfig';
 
 // Components
-import { StartScreen } from './components/StartScreen';
-import { MapZone } from './components/MapZone';
-import { BattleZone } from './components/BattleZone';
-import { PuzzleGrid } from './components/PuzzleGrid';
-import { RewardScreen } from './components/RewardScreen';
-import { GameOverScreen } from './components/GameOverScreen';
+import { StartScreen } from './components/screens/StartScreen';
+import { MapZone } from './components/map/MapZone';
+import { BattleZone } from './components/battle/BattleZone';
+import { PuzzleGrid } from './components/puzzle/PuzzleGrid';
+import { RewardScreen } from './components/rewards/RewardScreen';
+import { GameOverScreen } from './components/screens/GameOverScreen';
+import { generateRewardOptions, applyRewardsAndRestoreArmy } from './components/rewards/rewardUtils';
 
 const App: React.FC = () => {
   const [gameState, setGameState] = useState<GameState>({
@@ -31,12 +33,14 @@ const App: React.FC = () => {
     scavengerLevel: 0,
     commanderMoveRange: 1,
     maxRewardSelections: 1,
-    rewardsRemaining: 0,
+    gems: 100, // Initial Gems
     upgrades: [],
     remodelLevel: 0,
+    armyLimitBonus: 0, 
     currentRewardIds: [],
     rewardsHistory: {},
-    scoreStats: { matches3: 0, matches4: 0, matches5: 0, reshuffles: 0, won: false, kills: {} }
+    scoreStats: { matches3: 0, matches4: 0, matches5: 0, reshuffles: 0, won: false, kills: {} },
+    battleId: 0
   });
 
   // --- Actions ---
@@ -64,12 +68,14 @@ const App: React.FC = () => {
       scavengerLevel: 0,
       commanderMoveRange: 1,
       maxRewardSelections: 1,
-      rewardsRemaining: 0,
+      gems: 100,
       upgrades: [],
       remodelLevel: 0,
+      armyLimitBonus: 0,
       currentRewardIds: [],
       rewardsHistory: {},
-      scoreStats: { matches3: 0, matches4: 0, matches5: 0, reshuffles: 0, won: false, kills: {} }
+      scoreStats: { matches3: 0, matches4: 0, matches5: 0, reshuffles: 0, won: false, kills: {} },
+      battleId: prev.battleId + 1
     }));
   };
 
@@ -109,55 +115,6 @@ const App: React.FC = () => {
     }));
   };
 
-  const generateRewardOptions = (currentState: GameState): string[] => {
-      // Pool logic
-      const pool: string[] = [];
-      const history = currentState.rewardsHistory || {};
-
-      // EXPAND (Max 2 times allowed total)
-      if (currentState.gridSize < MAX_GRID_SIZE && (history['EXPAND'] || 0) < 2) {
-          pool.push('EXPAND');
-      }
-      
-      // SCAVENGER (Unlimited)
-      pool.push('SCAVENGER');
-
-      // AGILITY (Max 1 time - adds +1 range)
-      if ((history['AGILITY'] || 0) < 1) {
-          pool.push('AGILITY');
-      }
-      
-      // REINFORCE (Max 1 time - Old Centurion Skill)
-      if ((history['REINFORCE'] || 0) < 1) {
-          pool.push('REINFORCE');
-      }
-
-      // REMODEL (Max 4 times)
-      if (currentState.remodelLevel < 4) {
-          pool.push('REMODEL');
-      }
-
-      // GREED (Max 1 time)
-      if ((history['GREED'] || 0) < 1) {
-          pool.push('GREED');
-      }
-
-      // UPGRADES (Max 1 per type)
-      [UnitType.INFANTRY, UnitType.ARCHER, UnitType.SHIELD, UnitType.SPEAR].forEach(type => {
-          if (!currentState.upgrades.includes(type)) {
-              pool.push(`UPGRADE_${type}`);
-          }
-      });
-
-      // Shuffle and pick 3
-      for (let i = pool.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [pool[i], pool[j]] = [pool[j], pool[i]];
-      }
-      
-      return pool.slice(0, 3);
-  }
-
   const handleBattleEnd = (victory: boolean, survivingUnits: UnitType[] = [], kills: Record<string, number> = {}) => {
     // Merge kills
     const mergedKills = { ...gameState.scoreStats.kills };
@@ -171,6 +128,9 @@ const App: React.FC = () => {
     };
 
     if (victory) {
+      // Award Gems
+      const earnedGems = SCORING.GEM_WIN_BONUS;
+      
       if (gameState.currentLevel >= gameState.maxLevels) {
         // Campaign Victory
         setGameState(prev => ({
@@ -185,9 +145,9 @@ const App: React.FC = () => {
 
         setGameState(prev => ({ 
           ...prev, 
+          gems: prev.gems + earnedGems, // Add Gems
           phase: Phase.REWARD,
           survivors: survivingUnits, // Store survivors for display/score, NOT for next level roster
-          rewardsRemaining: prev.maxRewardSelections,
           currentRewardIds: rewardOptions,
           scoreStats: nextScoreStats
         }));
@@ -204,74 +164,16 @@ const App: React.FC = () => {
 
   const handleRewardSelect = (rewardIds: string[]) => {
     setGameState(prev => {
-      let newSize = prev.gridSize;
-      let newScavenger = prev.scavengerLevel;
-      let newMaxRewards = prev.maxRewardSelections;
-      let newMoveRange = prev.commanderMoveRange;
-      let newRemodelLevel = prev.remodelLevel;
-      const currentUpgrades = [...prev.upgrades];
-      const newHistory = { ...prev.rewardsHistory };
-      
-      // Iterate all selections
-      rewardIds.forEach(rewardId => {
-        newHistory[rewardId] = (newHistory[rewardId] || 0) + 1;
-
-        if (rewardId === 'EXPAND' && newSize < MAX_GRID_SIZE) {
-            newSize += 1;
-        } else if (rewardId === 'SCAVENGER') {
-            newScavenger += 1;
-        } else if (rewardId === 'GREED') {
-            newMaxRewards += 1;
-        } else if (rewardId === 'AGILITY') {
-            newMoveRange += 1;
-        } else if (rewardId === 'REMODEL') {
-            newRemodelLevel += 1;
-        } else if (rewardId.startsWith('UPGRADE_')) {
-            const type = rewardId.replace('UPGRADE_', '') as UnitType;
-            if (!currentUpgrades.includes(type)) {
-                currentUpgrades.push(type);
-            }
-        }
-      });
-
-      // Proceed to Next Level immediately (since we batched selections)
-      const nextLevel = prev.currentLevel + 1;
-      const nextSteps = LEVEL_STEPS[nextLevel - 1] || 10;
-
-      // RESTORE ARMY LOGIC:
-      // 1. Separate Commander and Soldiers from previous roster
-      const soldiersToProcess = prev.summonQueue.filter(u => !u.startsWith('COMMANDER_'));
-      
-      // 2. Filter Soldiers by Per-Type Limit
-      const typeCounts: Record<string, number> = {};
-      const restoredSoldiers: UnitType[] = [];
-
-      for (const unit of soldiersToProcess) {
-         const currentCount = typeCounts[unit] || 0;
-         if (currentCount < MAX_PER_UNIT_COUNT) {
-             restoredSoldiers.push(unit);
-             typeCounts[unit] = currentCount + 1;
-         }
-      }
-
-      return {
-        ...prev,
-        gridSize: newSize,
-        scavengerLevel: newScavenger,
-        maxRewardSelections: newMaxRewards,
-        commanderMoveRange: newMoveRange,
-        remodelLevel: newRemodelLevel,
-        upgrades: currentUpgrades,
-        rewardsRemaining: 0,
-        rewardsHistory: newHistory,
-        currentLevel: nextLevel,
-        stepsRemaining: nextSteps,
-        reshufflesUsed: 0,
-        phase: Phase.PUZZLE, 
-        summonQueue: [prev.commanderUnitType, ...restoredSoldiers], // Full army restored + Commander
-        survivors: [], 
-        currentRewardIds: []
-      };
+        const nextLevel = prev.currentLevel + 1;
+        const nextSteps = LEVEL_STEPS[nextLevel - 1] || 10;
+        
+        // Use isolated utility for complex state transitions
+        const updates = applyRewardsAndRestoreArmy(prev, rewardIds, nextSteps);
+        
+        return {
+            ...prev,
+            ...updates
+        };
     });
   };
   
@@ -291,12 +193,14 @@ const App: React.FC = () => {
         scavengerLevel: 0,
         commanderMoveRange: 1,
         maxRewardSelections: 1,
-        rewardsRemaining: 0,
+        gems: 100,
         upgrades: [],
         remodelLevel: 0,
+        armyLimitBonus: 0,
         currentRewardIds: [],
         rewardsHistory: {},
-        scoreStats: { matches3: 0, matches4: 0, matches5: 0, reshuffles: 0, won: false, kills: {} }
+        scoreStats: { matches3: 0, matches4: 0, matches5: 0, reshuffles: 0, won: false, kills: {} },
+        battleId: 0
       });
   };
 
@@ -319,6 +223,7 @@ const App: React.FC = () => {
       {/* MIDDLE: Battle Zone */}
       <div className="flex-1 w-full relative border-b-4 border-slate-900 bg-slate-900 overflow-hidden z-0">
         <BattleZone 
+          key={gameState.battleId}
           allies={gameState.summonQueue} 
           level={gameState.currentLevel}
           phase={gameState.phase}
@@ -353,11 +258,13 @@ const App: React.FC = () => {
         <RewardScreen 
           rewardIds={gameState.currentRewardIds}
           onSelect={handleRewardSelect} 
-          selectionsLeft={gameState.rewardsRemaining}
+          freeSelections={gameState.maxRewardSelections}
+          currentGems={gameState.gems}
           upgrades={gameState.upgrades}
           rewardsHistory={gameState.rewardsHistory}
           survivors={gameState.survivors}
           roster={gameState.summonQueue}
+          currentLevel={gameState.currentLevel}
         />
       )}
       

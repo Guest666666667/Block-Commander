@@ -1,37 +1,21 @@
 
 import React from 'react';
-import { GridItem, UnitType, GameState } from '../../types';
-import { UnitIcon } from '../UnitIcon';
-import { isCommander } from './puzzleUtils';
+import { GridItem } from '../../types';
+import { UnitIcon } from '../units/UnitIcon';
 
 interface PuzzleCellProps {
     item: GridItem;
-    commander: GridItem | undefined;
-    gameState: GameState;
-    animating: boolean;
-    steps: number;
-    isLocked: boolean;
-    matchedIds: Set<string>;
+    isValidTarget: boolean;
+    isCommander: boolean;
+    isUpgraded: boolean;
+    isMatched: boolean;
     cellSize: string;
     onCellClick: (item: GridItem) => void;
 }
 
 export const PuzzleCell: React.FC<PuzzleCellProps> = ({
-    item, commander, gameState, animating, steps, isLocked, matchedIds, cellSize, onCellClick
+    item, isValidTarget, isCommander, isUpgraded, isMatched, cellSize, onCellClick
 }) => {
-    const isCmd = isCommander(item.type);
-    const isMatched = matchedIds.has(item.id);
-    const isUpgraded = gameState.upgrades.includes(item.type);
-    
-    let isValidTarget = false;
-    if (commander && !isCmd && !animating && steps > 0 && !isLocked) {
-        const dr = Math.abs(item.row - commander.row);
-        const dc = Math.abs(item.col - commander.col);
-        const range = gameState.commanderMoveRange || 1;
-        const dist = dr + dc;
-        isValidTarget = (dist > 0 && dist <= range);
-    }
-
     // Logic for animation class:
     // 1. If Matched: Bounce
     // 2. If NOT matched AND is new: Grow in
@@ -45,7 +29,7 @@ export const PuzzleCell: React.FC<PuzzleCellProps> = ({
             onClick={() => onCellClick(item)}
             className={`
                 ${cellSize} rounded-md cursor-pointer transition-all duration-300 relative
-                ${isCmd ? 'ring-4 ring-yellow-500 z-10' : ''}
+                ${isCommander ? 'ring-4 ring-yellow-500 z-10' : ''}
                 ${animationClass}
                 hover:bg-white/5
             `}

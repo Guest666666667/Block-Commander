@@ -1,10 +1,9 @@
 
 import React from 'react';
 import { BattleEntity, UnitType } from '../../types';
-import { COMMANDERS, BUFF_CONFIG } from '../../constants';
-import { UnitIcon } from '../UnitIcon';
+import { UnitIcon } from '../units/UnitIcon';
 import { X, Shield, Sword, Heart, Zap, Target, Footprints, Timer } from 'lucide-react';
-import { calculateEntityStats } from './battleUtils';
+import { BUFF_CONFIG, COMMANDERS } from '../units/unitConfig';
 
 interface BattleEntityModalProps {
     entity: BattleEntity;
@@ -13,27 +12,27 @@ interface BattleEntityModalProps {
 }
 
 export const BattleEntityModal: React.FC<BattleEntityModalProps> = ({ entity, upgrades, onClose }) => {
-    // Calculate BASE stats (Unit Base + Permanent Upgrades + No Buffs) for comparison
-    const baseStats = calculateEntityStats(
-        entity.type, 
-        [], 
-        entity.team === 'PLAYER' ? upgrades || [] : [], 
-        entity.team
-    );
-
     const renderStatBox = (
         icon: React.ReactNode, 
         current: number, 
-        base: number, 
+        modifier: number, 
         isFloat: boolean, 
         multiplier = 1
      ) => {
          const val = current * multiplier;
-         const baseVal = base * multiplier;
-         const diff = val - baseVal;
-         const hasChange = Math.abs(diff) >= (isFloat ? 0.1 : 1);
+         // If modifier is provided, display it. 
+         // Modifier is in raw units, so we multiply it too.
+         const diff = modifier * multiplier;
          
-         const isGood = diff > 0; 
+         const hasChange = Math.abs(diff) >= (isFloat ? 0.1 : 1);
+         const isGood = diff > 0; // For most stats more is better
+         
+         // Special handling for Attack Speed (Lower is better/faster)
+         // But modifier is stored as Raw MS. Negative modifier means faster (Good).
+         // Wait, if this is called for AtkSpeed:
+         // Current = APS (Frequency). Modifier = MS Delta.
+         // We cannot directly apply multiplier to MS Modifier to get APS Diff.
+         // We must handle AtkSpeed display logic uniquely if passed here.
          
          const textColor = hasChange ? (isGood ? 'text-green-400' : 'text-red-400') : 'text-white';
          const display = isFloat ? val.toFixed(1) : Math.round(val);
@@ -52,6 +51,36 @@ export const BattleEntityModal: React.FC<BattleEntityModalProps> = ({ entity, up
                  )}
              </div>
          )
+    }
+
+    const renderAtkSpeedBox = (currentSpeedMs: number, modifierMs: number) => {
+        // Convert to Attacks Per Second
+        const currentAps = 1000 / currentSpeedMs;
+        const baseSpeedMs = currentSpeedMs - modifierMs;
+        const baseAps = 1000 / baseSpeedMs;
+        
+        const diffAps = currentAps - baseAps;
+        const hasChange = Math.abs(diffAps) >= 0.1;
+        // Higher APS is better.
+        const isGood = diffAps > 0;
+
+        const textColor = hasChange ? (isGood ? 'text-green-400' : 'text-red-400') : 'text-white';
+        const display = currentAps.toFixed(1);
+        const deltaDisplay = Math.abs(diffAps).toFixed(1);
+        const sign = diffAps > 0 ? '+' : '-';
+
+        return (
+            <div className="bg-slate-900/60 rounded-lg p-1.5 flex flex-col items-center justify-center border border-slate-700/50 relative h-12">
+                <div className="text-slate-400 mb-0.5 scale-75"><Timer size={14}/></div>
+                <span className={`font-mono font-bold text-base leading-none ${textColor}`}>{display}</span>
+                
+                {hasChange && (
+                     <div className={`absolute top-0 right-1 text-[8px] font-bold ${isGood ? 'text-green-500' : 'text-red-500'}`}>
+                        {sign}{deltaDisplay}
+                     </div>
+                )}
+            </div>
+        )
     }
 
     return (
@@ -80,6 +109,11 @@ export const BattleEntityModal: React.FC<BattleEntityModalProps> = ({ entity, up
                                             </span>
                                             <span className="text-slate-500 text-[10px]">/{entity.maxHp}</span>
                                         </span>
+                                        {entity.statsModifiers.maxHp !== 0 && (
+                                            <span className="text-[9px] text-green-400 ml-1">
+                                                (+{entity.statsModifiers.maxHp})
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -91,12 +125,11 @@ export const BattleEntityModal: React.FC<BattleEntityModalProps> = ({ entity, up
 
                         {/* Compact Stats Grid */}
                         <div className="grid grid-cols-5 gap-1.5 mb-3">
-                            {renderStatBox(<Sword size={14}/>, entity.atk, baseStats.atk, false)}
-                            {renderStatBox(<Shield size={14}/>, entity.def, baseStats.def, false)}
-                            {renderStatBox(<Target size={14}/>, entity.range, baseStats.range, true)}
-                            {/* For AtkSpeed: Convert Interval (ms) to APS (freq) for display. Lower interval = Higher APS */}
-                            {renderStatBox(<Timer size={14}/>, 1000 / entity.atkSpeed, 1000 / baseStats.atkSpeed, true)}
-                            {renderStatBox(<Footprints size={14}/>, entity.moveSpeed, baseStats.moveSpeed, true, 100)} 
+                            {renderStatBox(<Sword size={14}/>, entity.atk, entity.statsModifiers.atk, false)}
+                            {renderStatBox(<Shield size={14}/>, entity.def, entity.statsModifiers.def, false)}
+                            {renderStatBox(<Target size={14}/>, entity.range, entity.statsModifiers.range, true)}
+                            {renderAtkSpeedBox(entity.atkSpeed, entity.statsModifiers.atkSpeed)}
+                            {renderStatBox(<Footprints size={14}/>, entity.moveSpeed, entity.statsModifiers.moveSpeed, true, 100)} 
                         </div>
                         
                         {/* Buffs Section */}

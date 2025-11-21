@@ -1,9 +1,9 @@
 
 import React from 'react';
-import { ScoreStats, UnitType } from '../types';
-import { SCORING } from '../constants';
+import { ScoreStats, UnitType } from '../../types';
+import { SCORING } from '../../constants';
 import { Trophy, Skull, RotateCcw, Swords, LayoutGrid, RefreshCw, Crosshair } from 'lucide-react';
-import { UnitIcon } from './UnitIcon';
+import { UnitIcon } from '../units/UnitIcon';
 
 interface GameOverScreenProps {
   stats: ScoreStats;

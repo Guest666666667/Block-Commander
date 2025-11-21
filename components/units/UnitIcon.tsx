@@ -1,8 +1,8 @@
 
 import React from 'react';
-import { UnitType } from '../types';
-import { UNIT_COLORS } from '../constants';
+import { UnitType } from '../../types';
 import { Sword, Shield, Target, Hexagon, User, Triangle, CircleOff, Swords, Crosshair, ShieldCheck, Tent, Zap } from 'lucide-react';
+import { UNIT_COLORS } from './unitConfig';
 
 interface UnitIconProps {
   type: UnitType;

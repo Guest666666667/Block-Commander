@@ -1,9 +1,10 @@
 
 import React from 'react';
-import { GameState, GridItem, UnitType } from '../types';
-import { PuzzleControls, ReshuffleModal } from './puzzle/PuzzleUI';
-import { PuzzleCell } from './puzzle/PuzzleCell';
-import { usePuzzleLogic } from './puzzle/usePuzzleLogic';
+import { GameState, GridItem, UnitType } from '../../types';
+import { PuzzleControls, ReshuffleModal } from './PuzzleUI';
+import { PuzzleCell } from './PuzzleCell';
+import { usePuzzleLogic } from './usePuzzleLogic';
+import { isCommander } from './puzzleUtils';
 
 interface PuzzleGridProps {
   gameState: GameState;
@@ -21,7 +22,6 @@ export const PuzzleGrid: React.FC<PuzzleGridProps> = ({
   const {
       grid,
       steps,
-      animating,
       matchedIds,
       strategyLocked,
       showReshuffleModal,
@@ -31,7 +31,7 @@ export const PuzzleGrid: React.FC<PuzzleGridProps> = ({
       handleCellClick,
       clickReshuffleBtn,
       confirmReshuffle,
-      getCommander
+      checkMoveValidity
   } = usePuzzleLogic({
       gameState,
       isLocked,
@@ -49,8 +49,6 @@ export const PuzzleGrid: React.FC<PuzzleGridProps> = ({
      if (a.row !== b.row) return a.row - b.row;
      return a.col - b.col;
   });
-
-  const commander = getCommander();
 
   return (
     <div className={`h-full w-full bg-gray-800 flex flex-col items-center p-2 relative transition-all duration-1000 ${isLocked ? 'grayscale brightness-50 pointer-events-none' : ''}`}>
@@ -94,20 +92,25 @@ export const PuzzleGrid: React.FC<PuzzleGridProps> = ({
            `}
            style={{ gridTemplateColumns: `repeat(${gameState.gridSize}, minmax(0, 1fr))` }}
          >
-           {sortedGrid.map((item) => (
-               <PuzzleCell 
-                    key={item.id}
-                    item={item}
-                    commander={commander}
-                    gameState={gameState}
-                    animating={animating}
-                    steps={steps}
-                    isLocked={isLocked}
-                    matchedIds={matchedIds}
-                    cellSize={cellSize}
-                    onCellClick={handleCellClick}
-               />
-           ))}
+           {sortedGrid.map((item) => {
+               const isValidTarget = checkMoveValidity(item);
+               const isCmd = isCommander(item.type);
+               const isMatched = matchedIds.has(item.id);
+               const isUpgraded = gameState.upgrades.includes(item.type);
+
+               return (
+                   <PuzzleCell 
+                        key={item.id}
+                        item={item}
+                        isValidTarget={isValidTarget}
+                        isCommander={isCmd}
+                        isUpgraded={isUpgraded}
+                        isMatched={isMatched}
+                        cellSize={cellSize}
+                        onCellClick={handleCellClick}
+                   />
+               );
+           })}
          </div>
       </div>
       

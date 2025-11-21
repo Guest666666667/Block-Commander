@@ -130,6 +130,31 @@ export const replaceMatchedItems = (currentGrid: GridItem[], matches: Set<string
 };
 
 /**
+ * Geometric Helper: Get Manhattan Distance
+ */
+export const getManhattanDistance = (a: GridItem, b: GridItem): number => {
+    return Math.abs(a.row - b.row) + Math.abs(a.col - b.col);
+};
+
+/**
+ * Geometric Helper: Find adjacent items (Manhattan dist = 1)
+ */
+export const getAdjacentCells = (center: GridItem, allItems: GridItem[]): GridItem[] => {
+    return allItems.filter(item => getManhattanDistance(center, item) === 1);
+};
+
+/**
+ * Geometric Helper: Find items within specific range (Manhattan dist <= range)
+ * Excludes self.
+ */
+export const getCellsInRange = (center: GridItem, allItems: GridItem[], range: number): GridItem[] => {
+    return allItems.filter(item => {
+        if (item.id === center.id) return false;
+        return getManhattanDistance(center, item) <= range;
+    });
+};
+
+/**
  * Core Match-3 Algorithm.
  */
 export const getMatches = (currentGrid: GridItem[], gridSize: number, scavengerLevel: number) => {

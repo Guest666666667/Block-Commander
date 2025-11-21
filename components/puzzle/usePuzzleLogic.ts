@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { GameState, GridItem, UnitType } from '../../types';
-import { generateInitialGrid, shuffleSoldiers, replaceMatchedItems, getMatches, isCommander, isSoldier } from './puzzleUtils';
+import { generateInitialGrid, shuffleSoldiers, replaceMatchedItems, getMatches, isCommander, isSoldier, getCellsInRange, getManhattanDistance } from './puzzleUtils';
 
 const RESHUFFLE_COST = 3;
 
@@ -48,6 +48,21 @@ export const usePuzzleLogic = ({ gameState, isLocked, onSummon, onMatch, onBattl
 
     const getCommander = () => grid.find(g => isCommander(g.type));
 
+    /**
+     * Determines if a specific cell is a valid swap target for the commander.
+     * Used by both interaction logic and UI rendering.
+     */
+    const checkMoveValidity = (target: GridItem): boolean => {
+        if (animating || steps <= 0 || isLocked) return false;
+        const commander = getCommander();
+        if (!commander) return false;
+        if (target.id === commander.id) return false; // Can't target self
+
+        const dist = getManhattanDistance(commander, target);
+        const range = gameState.commanderMoveRange || 1;
+        return (dist > 0 && dist <= range);
+    };
+
     const checkPhaseEnd = (currentGrid: GridItem[], currentSteps: number) => {
         if (currentSteps <= 0) {
             setTimeout(() => handlePhaseEnd(currentGrid), 500);
@@ -58,23 +73,15 @@ export const usePuzzleLogic = ({ gameState, isLocked, onSummon, onMatch, onBattl
         const commander = finalGrid.find(c => isCommander(c.type));
         let skillSummons: UnitType[] = [];
     
-        // REINFORCE Logic
+        // REINFORCE Logic: Recruit ALL soldiers within movement range
         if (commander && gameState.rewardsHistory['REINFORCE']) {
-            const neighbors: UnitType[] = [];
-            finalGrid.forEach(item => {
-                if (isSoldier(item.type)) {
-                    const dr = Math.abs(item.row - commander.row);
-                    const dc = Math.abs(item.col - commander.col);
-                    if (dr + dc === 1) {
-                        neighbors.push(item.type);
-                    }
-                }
-            });
+            const range = gameState.commanderMoveRange || 1;
+            const neighbors = getCellsInRange(commander, finalGrid, range);
+            const soldierNeighbors = neighbors.filter(n => isSoldier(n.type));
     
-            if (neighbors.length > 0) {
-                const randomNeighbor = neighbors[Math.floor(Math.random() * neighbors.length)];
-                skillSummons.push(randomNeighbor);
-            }
+            soldierNeighbors.forEach(n => {
+                skillSummons.push(n.type);
+            });
         }
     
         if (skillSummons.length > 0) {
@@ -150,21 +157,11 @@ export const usePuzzleLogic = ({ gameState, isLocked, onSummon, onMatch, onBattl
     // --- Inputs ---
 
     const handleCellClick = (clickedItem: GridItem) => {
-        if (animating || steps <= 0 || isLocked) return;
-    
-        const commander = getCommander();
-        if (!commander) return;
-        if (clickedItem.id === commander.id) return;
-    
-        const dr = Math.abs(clickedItem.row - commander.row);
-        const dc = Math.abs(clickedItem.col - commander.col);
-        const dist = dr + dc;
-        const range = gameState.commanderMoveRange || 1;
+        if (!checkMoveValidity(clickedItem)) return;
         
-        const isValidMove = (dist > 0 && dist <= range);
-    
-        if (isValidMove) {
-          performSwap(commander, clickedItem);
+        const commander = getCommander();
+        if (commander) {
+            performSwap(commander, clickedItem);
         }
     };
 
@@ -187,7 +184,7 @@ export const usePuzzleLogic = ({ gameState, isLocked, onSummon, onMatch, onBattl
     
           const targetItem = grid.find(g => g.row === targetRow && g.col === targetCol);
           
-          if (targetItem) {
+          if (targetItem && checkMoveValidity(targetItem)) {
             performSwap(commander, targetItem);
           }
         };
@@ -236,6 +233,7 @@ export const usePuzzleLogic = ({ gameState, isLocked, onSummon, onMatch, onBattl
         handleCellClick,
         clickReshuffleBtn,
         confirmReshuffle,
+        checkMoveValidity, // Exported to allow UI to render highlights
         getCommander
     };
 };

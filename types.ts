@@ -34,6 +34,13 @@ export enum CommanderClass {
   VANGUARD = 'VANGUARD'
 }
 
+export enum Rarity {
+  COMMON = 'COMMON',
+  RARE = 'RARE',
+  EPIC = 'EPIC',
+  MYTHIC = 'MYTHIC'
+}
+
 export interface EntityStats {
   hp: number;
   maxHp: number;
@@ -44,6 +51,15 @@ export interface EntityStats {
   moveSpeed: number; // Movement speed (0.01 - 0.1 range recommended)
   scale: number; // Visual size multiplier
   commanderClass: CommanderClass; // Identity tag
+}
+
+export interface EntityStatsModifiers {
+  maxHp: number;
+  atk: number;
+  def: number;
+  range: number;
+  moveSpeed: number;
+  atkSpeed: number; // ms difference
 }
 
 // New: For configuration-based buffs
@@ -87,6 +103,7 @@ export interface BattleEntity extends EntityStats {
 
   // Generic Buff System
   buffs: string[]; // e.g. ['HEAL', 'RAGE']
+  statsModifiers: EntityStatsModifiers;
 }
 
 export interface Projectile {
@@ -145,10 +162,11 @@ export interface GameState {
   // New Mechanics
   scavengerLevel: number; 
   commanderMoveRange: number; 
-  maxRewardSelections: number; 
-  rewardsRemaining: number; 
+  maxRewardSelections: number; // Number of "Free Picks"
+  gems: number; // Currency
   upgrades: UnitType[]; 
   remodelLevel: number; 
+  armyLimitBonus: number; // Increases the MAX_PER_UNIT_COUNT
   
   // Reward Randomization
   currentRewardIds: string[];
@@ -156,4 +174,7 @@ export interface GameState {
   
   // Scoring
   scoreStats: ScoreStats;
+
+  // Unique ID for the current battle instance to force component remounts
+  battleId: number;
 }

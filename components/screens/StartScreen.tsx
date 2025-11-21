@@ -1,9 +1,9 @@
 
 import React, { useState } from 'react';
-import { COMMANDERS } from '../constants';
-import { UnitType } from '../types';
+import { UnitType } from '../../types';
 import { Zap, Play } from 'lucide-react';
-import { UnitIcon } from './UnitIcon';
+import { UnitIcon } from '../units/UnitIcon';
+import { COMMANDERS } from '../units/unitConfig';
 
 interface StartScreenProps {
   onStart: (commanderType: UnitType) => void;

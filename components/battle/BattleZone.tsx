@@ -1,13 +1,13 @@
 
 import React, { useState } from 'react';
-import { BattleEntity, Phase, UnitType } from '../types';
-import { BUFF_CONFIG } from '../constants';
-import { UnitIcon } from './UnitIcon';
+import { BattleEntity, Phase, UnitType } from '../../types';
+import { UnitIcon } from '../units/UnitIcon';
 import { Sparkles, MoveRight } from 'lucide-react';
-import { useBattleLoop } from './battle/useBattleLoop';
-import { getUnitGlowColor, getEntityFilterStyle } from './battle/battleUtils';
-import { BattleEntityModal } from './battle/BattleEntityModal';
-import { BattleControls, BattleBuffsModal } from './battle/BattleUI';
+import { useBattleLoop } from './useBattleLoop';
+import { getUnitGlowColor, getEntityFilterStyle } from './battleUtils';
+import { BattleEntityModal } from './BattleEntityModal';
+import { BattleControls, BattleBuffsModal } from './BattleUI';
+import { BUFF_CONFIG } from '../units/unitConfig';
 
 interface BattleZoneProps {
   allies: UnitType[];
@@ -88,6 +88,16 @@ export const BattleZone: React.FC<BattleZoneProps> = (props) => {
          .animate-spawn-unit {
             animation: spawn-unit 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
          }
+         
+         @keyframes slash {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5) rotate(-45deg); }
+            20% { opacity: 1; transform: translate(-50%, -50%) scale(1.5) rotate(0deg); }
+            80% { opacity: 1; transform: translate(-50%, -50%) scale(1.5) rotate(0deg); }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(2) rotate(45deg); }
+         }
+         .animate-slash {
+            animation: slash 0.3s ease-out forwards;
+         }
        `}</style>
 
        <div className={`absolute inset-0 transition-all duration-500 ${isPaused ? 'grayscale brightness-75' : ''}`}>
@@ -102,11 +112,18 @@ export const BattleZone: React.FC<BattleZoneProps> = (props) => {
            {entities.map(ent => {
              const isDowned = ent.hp <= 0;
              
-             // Only render alive units OR Commanders (even if down)
-             // Soldiers disappear when dead
-             if (isDowned && !ent.type.startsWith('COMMANDER_')) return null;
+             // Visibility Logic:
+             // 1. If alive, always render.
+             // 2. If dead, ONLY render if it is the PLAYER'S Commander.
+             //    Enemy Commanders and all soldiers disappear when dead.
+             if (isDowned) {
+                 const isPlayerCommander = ent.type.startsWith('COMMANDER_') && ent.team === 'PLAYER';
+                 if (!isPlayerCommander) return null;
+             }
 
-             const zIndex = Math.floor(ent.y * 100);
+             // Z-INDEX logic: Living units are layer 10+, Downed units are layer 0.
+             const zIndex = isDowned ? 0 : Math.floor(ent.y * 100) + 10;
+             
              const isHit = performance.now() - ent.lastHitTime < 150 && !isDowned;
              const isUpgraded = props.upgrades?.includes(ent.type) && ent.team === 'PLAYER';
              const scale = ent.scale || 1;
@@ -115,6 +132,9 @@ export const BattleZone: React.FC<BattleZoneProps> = (props) => {
              const hasCommanderBuff = ent.buffs.some(b => BUFF_CONFIG[b]?.isCommanderBuff);
              const glowColor = getUnitGlowColor(ent.type);
              const filterStyle = getEntityFilterStyle(ent);
+
+             // Health Calculation
+             const hpPercent = Math.max(0, Math.min(100, (ent.hp / ent.maxHp) * 100));
 
              return (
                <div 
@@ -135,15 +155,26 @@ export const BattleZone: React.FC<BattleZoneProps> = (props) => {
                     boxShadow: (hasCommanderBuff && !isDowned) ? `0 0 10px 2px ${glowColor}` : undefined
                 }}
                >
+                 {/* Unit Icon */}
                  <div className="w-full h-full animate-spawn-unit">
                     <div className={`w-full h-full transition-all duration-75 ${isHit ? 'brightness-200 sepia saturate-200 hue-rotate-[-50deg]' : ''}`}
                         style={{ transform: `scale(${ent.team === 'ENEMY' ? '-1, 1' : '1, 1'})` }}>
                         <UnitIcon type={ent.type} isUpgraded={isUpgraded} />
                     </div>
                  </div>
+
+                 {/* Health Bar - Only for alive units */}
+                 {!isDowned && (
+                     <div className="absolute -bottom-2 left-0 w-full h-1.5 bg-black/30 rounded-full overflow-hidden backdrop-blur-[1px]">
+                         <div 
+                            className={`h-full rounded-full transition-all duration-200 ${ent.team === 'PLAYER' ? 'bg-green-500' : 'bg-red-500'}`}
+                            style={{ width: `${hpPercent}%` }}
+                         />
+                     </div>
+                 )}
                  
                  {ent.type === UnitType.SPEAR && ent.aiState === 'CHARGING' && !isDowned && (
-                     <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 text-[8px] font-bold text-yellow-300 animate-pulse whitespace-nowrap shadow-black drop-shadow-md">
+                     <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 text-[8px] font-bold text-yellow-300 animate-pulse whitespace-nowrap shadow-black drop-shadow-md z-20">
                         CHARGE!
                      </div>
                  )}
@@ -158,7 +189,7 @@ export const BattleZone: React.FC<BattleZoneProps> = (props) => {
            {effects.map(fx => (
                <div key={fx.id} className={`absolute z-40 pointer-events-none ${fx.type === 'SLASH' ? 'text-red-500 scale-150' : fx.type === 'HEAL' ? 'text-green-400' : 'text-yellow-200'}`} 
                     style={{ left: `${fx.x}%`, top: `${fx.y}%`, transform: 'translate(-50%, -50%)' }}>
-                    {fx.type === 'SLASH' ? <div className="animate-ping font-bold text-xl">/</div> : fx.type === 'HEAL' ? <div className="animate-float-up text-xs font-bold">+</div> : <Sparkles size={24} className="animate-ping" />}
+                    {fx.type === 'SLASH' ? <div className="animate-slash font-bold text-xl">/</div> : fx.type === 'HEAL' ? <div className="animate-float-up text-xs font-bold">+</div> : <Sparkles size={24} className="animate-ping" />}
                </div>
            ))}
        </div>

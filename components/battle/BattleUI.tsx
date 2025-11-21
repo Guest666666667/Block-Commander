@@ -1,7 +1,7 @@
 
 import React from 'react';
-import { REWARD_DEFINITIONS } from '../../constants';
 import { Play, Pause, Flag, Backpack, X } from 'lucide-react';
+import { REWARD_DEFINITIONS } from '../rewards/rewardConfig';
 
 // --- BATTLE CONTROLS ---
 
@@ -41,7 +41,7 @@ export const BattleControls: React.FC<BattleControlsProps> = ({
                     {isPaused && !hasSelectedEntity && !showBuffs ? <Play size={14} /> : <Pause size={14} />}
                 </button>
                 <button onClick={onToggleSpeed} className="bg-slate-800/80 hover:bg-slate-700 text-yellow-400 border border-slate-600 rounded-md px-3 py-1 flex items-center gap-0.5 transition-all shadow-lg active:scale-95 min-w-[40px] justify-center">
-                    {Array.from({ length: speedMultiplier }).map((_, i) => (<Play key={i} size={12} fill="currentColor" className={i > 0 ? "-ml-1.5" : ""} />))}
+                    <span className="font-bold text-xs">x{speedMultiplier}</span>
                 </button>
                 <button onClick={onSurrender} className="bg-red-900/80 hover:bg-red-700 text-white border border-red-700 rounded-md px-3 py-1 flex items-center justify-center transition-all shadow-lg active:scale-95 w-10">
                     <Flag size={14} />
