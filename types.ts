@@ -160,7 +160,8 @@ export interface GameState {
   
   // New Mechanics
   scavengerLevel: number; 
-  commanderMoveRange: number; 
+  commanderMoveRange: number;
+  maxStepsBonus: number; // Increases the steps allowed per level
   maxRewardSelections: number; // Number of "Free Picks"
   rewardOptionsCount: number; // How many options are shown in reward screen
   gems: number; // Currency

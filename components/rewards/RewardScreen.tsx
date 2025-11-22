@@ -4,7 +4,8 @@ import { CheckCircle, ArrowRight, Diamond, Crown } from 'lucide-react';
 import { UnitType, Rarity } from '../../types';
 import { MAX_PER_UNIT_COUNT, SCORING } from '../../constants';
 import { UnitIcon } from '../units/UnitIcon';
-import { RARITY_COLORS, REWARD_DEFINITIONS, RewardIDs } from './rewardConfig';
+import { REWARD_DEFINITIONS, RewardIDs } from './rewardConfig';
+import { RARITY_COLORS } from './rarityConfig';
 import { calculateTransactionCost } from './rewardUtils';
 import { GemCounter } from '../common/GemCounter';
 
@@ -107,6 +108,9 @@ export const RewardScreen: React.FC<RewardScreenProps> = ({
   const freeIndices = selectionMeta.slice(0, freeSelections).map(s => s.index);
   const remainingFreePicks = Math.max(0, freeSelections - selectedIndices.length);
 
+  const hasArmy = displayTypes.length > 0;
+  const armyStatusText = hasArmy ? "Regrouping Forces..." : "You stand alone";
+
   return (
     <div className="absolute inset-0 z-[50000] flex items-center justify-center bg-black/60 backdrop-blur-sm overflow-hidden">
       
@@ -203,50 +207,77 @@ export const RewardScreen: React.FC<RewardScreenProps> = ({
 
               {/* FOOTER */}
               <div className="w-full bg-slate-900/80 border border-slate-700 rounded-lg p-3">
-                    <div className="flex justify-between items-end mb-3 text-sm border-b border-slate-800 pb-2">
-                        <div className="flex gap-1.5 flex-wrap max-w-[60%]">
-                            {displayTypes.map((type) => {
-                                const rawTotal = rosterCounts[type] || 0;
-                                const effectiveTotal = Math.min(rawTotal, currentPerUnitLimit);
-                                const survived = survivorCounts[type] || 0;
-                                
-                                const isRestoring = survived < effectiveTotal;
-                                const isCulling = survived > effectiveTotal;
-                                
-                                return (
-                                    <div key={type} className="flex flex-col items-center bg-slate-900/80 p-1 rounded border border-slate-700 w-10">
-                                        <div className="w-4 h-4 mb-0.5">
-                                             <UnitIcon type={type as UnitType} isUpgraded={upgrades.includes(type as UnitType)} />
-                                        </div>
-                                        <div className="flex items-center justify-center gap-0.5 text-[9px] font-mono font-bold w-full leading-none">
-                                            {isRestoring ? (
-                                                <>
-                                                    <span className="text-red-400">{survived}</span>
-                                                    <ArrowRight size={8} className="text-slate-500" />
-                                                    <span className="text-green-400">{effectiveTotal}</span>
-                                                </>
-                                            ) : isCulling ? (
-                                                <>
-                                                    <span className="text-yellow-400">{survived}</span>
-                                                    <ArrowRight size={8} className="text-slate-500" />
-                                                    <span className="text-slate-300">{effectiveTotal}</span>
-                                                </>
-                                            ) : (
-                                                <span className="text-slate-200">{effectiveTotal}</span>
-                                            )}
-                                        </div>
-                                    </div>
-                                );
-                            })}
+                    
+                    {/* 1. REWARD DETAILS (Moved Top) */}
+                    {selectedRewards.length > 0 && (
+                         <div className="space-y-1 mb-3 bg-slate-950/30 p-2 rounded border border-slate-800">
+                            {selectedRewards.map((reward, i) => (
+                                <div key={`${reward.id}-${i}`} className="flex items-start gap-2 text-xs">
+                                    <span className={`font-bold shrink-0 ${RARITY_COLORS[reward.rarity]}`}>• {reward.label}:</span>
+                                    <span className="text-slate-400 text-[10px]">{reward.desc}</span>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* 2. STATS ROW */}
+                    <div className="flex justify-between items-center mb-3 border-b border-slate-800 pb-2">
+                        <div className="flex flex-col gap-1 max-w-[65%]">
+                            {/* Army Hint */}
+                            <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">
+                                {armyStatusText}
+                            </span>
+
+                            <div className="flex gap-1.5 flex-wrap">
+                                {displayTypes.length > 0 ? (
+                                    displayTypes.map((type) => {
+                                        const rawTotal = rosterCounts[type] || 0;
+                                        const effectiveTotal = Math.min(rawTotal, currentPerUnitLimit);
+                                        const survived = survivorCounts[type] || 0;
+                                        
+                                        const isRestoring = survived < effectiveTotal;
+                                        const isCulling = survived > effectiveTotal;
+                                        
+                                        return (
+                                            <div key={type} className="flex flex-col items-center bg-slate-900/80 p-1 rounded border border-slate-700 w-10">
+                                                <div className="w-4 h-4 mb-0.5">
+                                                    <UnitIcon type={type as UnitType} isUpgraded={upgrades.includes(type as UnitType)} />
+                                                </div>
+                                                <div className="flex items-center justify-center gap-0.5 text-[9px] font-mono font-bold w-full leading-none">
+                                                    {isRestoring ? (
+                                                        <>
+                                                            <span className="text-red-400">{survived}</span>
+                                                            <ArrowRight size={8} className="text-slate-500" />
+                                                            <span className="text-green-400">{effectiveTotal}</span>
+                                                        </>
+                                                    ) : isCulling ? (
+                                                        <>
+                                                            <span className="text-yellow-400">{survived}</span>
+                                                            <ArrowRight size={8} className="text-slate-500" />
+                                                            <span className="text-slate-300">{effectiveTotal}</span>
+                                                        </>
+                                                    ) : (
+                                                        <span className="text-slate-200">{effectiveTotal}</span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        );
+                                    })
+                                ) : (
+                                    <div className="h-10 flex items-center text-[10px] text-slate-600 italic">No soldiers in army.</div>
+                                )}
+                            </div>
                         </div>
 
                         <div className="flex flex-col items-end gap-1 pl-2">
-                            <div className="flex items-center gap-3">
-                                <span className="text-slate-500 font-bold text-[10px] uppercase">Free Picks</span>
-                                <span className={`font-black text-lg leading-none ${remainingFreePicks > 0 ? 'text-green-400' : 'text-slate-500'}`}>
-                                    {remainingFreePicks}
-                                </span>
-                            </div>
+                            {freeSelections > 0 && (
+                                <div className="flex items-center gap-3">
+                                    <span className="text-slate-500 font-bold text-[10px] uppercase">Free Picks</span>
+                                    <span className={`font-black text-lg leading-none ${remainingFreePicks > 0 ? 'text-green-400' : 'text-slate-500'}`}>
+                                        {remainingFreePicks}
+                                    </span>
+                                </div>
+                            )}
 
                             <div className="flex items-center gap-3">
                                 <span className="text-slate-500 font-bold text-[10px] uppercase">Cost</span>
@@ -257,17 +288,6 @@ export const RewardScreen: React.FC<RewardScreenProps> = ({
                             </div>
                         </div>
                     </div>
-
-                    {selectedRewards.length > 0 && (
-                         <div className="space-y-1 mb-3">
-                            {selectedRewards.map((reward, i) => (
-                                <div key={`${reward.id}-${i}`} className="flex items-start gap-2 text-xs">
-                                    <span className={`font-bold shrink-0 ${RARITY_COLORS[reward.rarity]}`}>• {reward.label}:</span>
-                                    <span className="text-slate-400 text-[10px]">{reward.desc}</span>
-                                </div>
-                            ))}
-                        </div>
-                    )}
 
                     <button 
                         onClick={handleConfirm}

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { BattleEntity, Phase, UnitType } from '../../types';
 import { UnitIcon } from '../units/UnitIcon';
@@ -5,7 +6,8 @@ import { Sparkles, MoveRight } from 'lucide-react';
 import { useBattleLoop } from './useBattleLoop';
 import { getUnitGlowColor, getEntityFilterStyle } from './battleUtils';
 import { BattleEntityModal } from './BattleEntityModal';
-import { BattleControls, BattleBuffsModal } from './BattleUI';
+import { BattleControls } from './BattleUI';
+import { RewardCompendium } from '../common/RewardCompendium';
 import { BUFF_CONFIG } from '../units/unitConfig';
 
 interface BattleZoneProps {
@@ -210,11 +212,10 @@ export const BattleZone: React.FC<BattleZoneProps> = (props) => {
             onToggleBuffs={toggleBuffs}
        />
 
-       {/* BUFFS LIST MODAL */}
+       {/* REWARD COMPENDIUM (Replaces old Buffs Modal) */}
        {showBuffs && (
-           <BattleBuffsModal 
+           <RewardCompendium 
                 rewardsHistory={props.rewardsHistory}
-                gems={props.gems}
                 onClose={handleCloseModal}
            />
        )}

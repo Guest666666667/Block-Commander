@@ -1,7 +1,8 @@
 
 import { GameState, UnitType, Phase, Rarity } from '../../types';
 import { MAX_PER_UNIT_COUNT } from '../../constants';
-import { REWARD_DEFINITIONS, DEBUG_REWARD_POOL, MAX_REWARD_OPTIONS, DEFAULT_RARITY_WEIGHTS, ELITE_RARITY_WEIGHTS, RewardIDs } from './rewardConfig';
+import { REWARD_DEFINITIONS, RewardIDs } from './rewardConfig';
+import { DEBUG_REWARD_POOL, MAX_REWARD_OPTIONS, DEFAULT_RARITY_WEIGHTS, ELITE_RARITY_WEIGHTS } from './rarityConfig';
 import { restoreSurvivors } from './armyLogic';
 
 // --- TYPES ---
@@ -198,6 +199,7 @@ const applyRewardEffect = (
         scavengerLevel: number; 
         maxRewardSelections: number; 
         commanderMoveRange: number; 
+        maxStepsBonus: number;
         remodelLevel: number; 
         armyLimitBonus: number; 
         rewardOptionsCount: number; 
@@ -211,7 +213,7 @@ const applyRewardEffect = (
 
     // Common/Gem Rewards with random logic
     if (rewardId === RewardIDs.GEMS_SMALL) {
-        state.gems += Math.floor(Math.random() * 101) + 50;
+        state.gems += Math.floor(Math.random() * 41) + 10;
         return state;
     }
 
@@ -221,6 +223,9 @@ const applyRewardEffect = (
         case RewardIDs.SCAVENGER: state.scavengerLevel += 1; break;
         case RewardIDs.GREED: state.maxRewardSelections += 1; break;
         case RewardIDs.AGILITY: state.commanderMoveRange += 1; break;
+        case RewardIDs.STEPS_RARE: state.maxStepsBonus += 2; break;
+        case RewardIDs.STEPS_EPIC: state.maxStepsBonus += 4; break;
+        case RewardIDs.STEPS_MYTHIC: state.maxStepsBonus += 6; break;
         case RewardIDs.REMODEL: state.remodelLevel += 1; break;
         case RewardIDs.LIMIT_BREAK: state.armyLimitBonus += 3; break;
         case RewardIDs.FORTUNE: state.rewardOptionsCount = Math.min(MAX_REWARD_OPTIONS, state.rewardOptionsCount + 1); break;
@@ -228,9 +233,9 @@ const applyRewardEffect = (
         case RewardIDs.REINFORCE: break; // Passive handled in PuzzleLogic
 
         // Gems
-        case RewardIDs.GEMS_MEDIUM: state.gems += 120; break;
-        case RewardIDs.GEMS_LARGE: state.gems += 180; break;
-        case RewardIDs.GEMS_HUGE: state.gems += 250; break;
+        case RewardIDs.GEMS_MEDIUM: state.gems += 60; break;
+        case RewardIDs.GEMS_LARGE: state.gems += 120; break;
+        case RewardIDs.GEMS_HUGE: state.gems += 200; break;
 
         // Recruits (Commanders)
         case RewardIDs.RECRUIT_CENTURION: state.extraUnits.push(UnitType.COMMANDER_CENTURION); break;
@@ -264,7 +269,7 @@ const applyRewardEffect = (
 export const applyRewardsAndRestoreArmy = (
     prevState: GameState, 
     selectedRewardIds: string[],
-    nextLevelSteps: number
+    nextLevelBaseSteps: number // The BASE steps from config, before bonuses
 ): Partial<GameState> => {
     
     // 1. Calculate Initial Cost
@@ -277,6 +282,7 @@ export const applyRewardsAndRestoreArmy = (
         scavengerLevel: prevState.scavengerLevel,
         maxRewardSelections: prevState.maxRewardSelections,
         commanderMoveRange: prevState.commanderMoveRange,
+        maxStepsBonus: prevState.maxStepsBonus,
         remodelLevel: prevState.remodelLevel,
         armyLimitBonus: prevState.armyLimitBonus || 0,
         rewardOptionsCount: prevState.rewardOptionsCount,
@@ -302,13 +308,17 @@ export const applyRewardsAndRestoreArmy = (
         prevState.commanderUnitType
     );
 
-    // 5. Return State Updates
+    // 5. Calculate Final Steps for next level (Base + Bonus)
+    const finalSteps = nextLevelBaseSteps + stateContainer.maxStepsBonus;
+
+    // 6. Return State Updates
     return {
         gems: stateContainer.gems,
         gridSize: stateContainer.gridSize,
         scavengerLevel: stateContainer.scavengerLevel,
         maxRewardSelections: stateContainer.maxRewardSelections,
         commanderMoveRange: stateContainer.commanderMoveRange,
+        maxStepsBonus: stateContainer.maxStepsBonus,
         remodelLevel: stateContainer.remodelLevel,
         armyLimitBonus: stateContainer.armyLimitBonus,
         rewardOptionsCount: stateContainer.rewardOptionsCount,
@@ -317,7 +327,7 @@ export const applyRewardsAndRestoreArmy = (
         
         rewardsHistory: newHistory,
         currentLevel: prevState.currentLevel + 1,
-        stepsRemaining: nextLevelSteps,
+        stepsRemaining: finalSteps,
         reshufflesUsed: 0,
         phase: Phase.PUZZLE, 
         summonQueue: [prevState.commanderUnitType, ...restoredArmy], // Always keep Main Commander at front

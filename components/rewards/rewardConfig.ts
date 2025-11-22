@@ -1,13 +1,8 @@
 
 import { Rarity, UnitType } from '../../types';
-import { Box, Coins, Swords, Crosshair, ShieldCheck, Tent, Footprints, Hammer, UserPlus, Crown, Clover, Gem, Sword, Target, Shield, Triangle, Ban, Zap, Grid, Hexagon } from 'lucide-react';
+import { Box, Coins, Swords, Crosshair, ShieldCheck, Tent, Footprints, Hammer, UserPlus, Crown, Clover, Gem, Sword, Target, Shield, Triangle, Ban, Zap, Grid, Hexagon, Timer } from 'lucide-react';
 import { MAX_GRID_SIZE } from '../../constants';
-
-// Global Defaults
-export const INITIAL_GEMS = 100;
-export const INITIAL_MAX_REWARD_SELECTIONS = 0;
-export const INITIAL_REWARD_OPTIONS_COUNT = 5;
-export const MAX_REWARD_OPTIONS = 6;
+import { MAX_REWARD_OPTIONS, INITIAL_REWARD_OPTIONS_COUNT } from './rarityConfig';
 
 // Centralized Reward IDs to prevent magic strings
 export const RewardIDs = {
@@ -16,7 +11,7 @@ export const RewardIDs = {
     GEMS_LARGE: 'GEMS_LARGE',
     GEMS_MEDIUM: 'GEMS_MEDIUM',
     GEMS_SMALL: 'GEMS_SMALL',
-    RECRUIT_CENTURION: 'RECRUIT_CENTURION', // New
+    RECRUIT_CENTURION: 'RECRUIT_CENTURION',
     RECRUIT_WARLORD: 'RECRUIT_WARLORD',
     RECRUIT_ELF: 'RECRUIT_ELF',
     RECRUIT_GUARDIAN: 'RECRUIT_GUARDIAN',
@@ -33,32 +28,12 @@ export const RewardIDs = {
     UNIT_ARCHER: 'UNIT_ARCHER',
     UNIT_SHIELD: 'UNIT_SHIELD',
     UNIT_SPEAR: 'UNIT_SPEAR',
+    // Step Bonuses
+    STEPS_RARE: 'STEPS_RARE',
+    STEPS_EPIC: 'STEPS_EPIC',
+    STEPS_MYTHIC: 'STEPS_MYTHIC',
     // Helper for upgrades
     UPGRADE_PREFIX: 'UPGRADE_',
-};
-
-// Leave empty [] to use normal randomization logic.
-export const DEBUG_REWARD_POOL: string[] = [];
-
-// Probability Configuration (Must sum to 100)
-export type RarityWeights = Record<Rarity, number>;
-
-export const DEFAULT_RARITY_WEIGHTS: RarityWeights = {
-    [Rarity.COMMON]: 60,
-    [Rarity.RARE]: 25,
-    [Rarity.EPIC]: 10,
-    [Rarity.MYTHIC]: 5,
-    // [Rarity.COMMON]: 1,
-    // [Rarity.RARE]: 1,
-    // [Rarity.EPIC]: 1,
-    // [Rarity.MYTHIC]: 97,
-};
-
-export const ELITE_RARITY_WEIGHTS: RarityWeights = {
-    [Rarity.COMMON]: 0,
-    [Rarity.RARE]: 70,
-    [Rarity.EPIC]: 20,
-    [Rarity.MYTHIC]: 10,
 };
 
 // Reward Definitions
@@ -86,10 +61,20 @@ export const REWARD_DEFINITIONS: Record<string, RewardDef> = {
       maxLimit: MAX_GRID_SIZE - 3, 
       weight: 3
   },
+  [RewardIDs.STEPS_MYTHIC]: { 
+    id: RewardIDs.STEPS_MYTHIC, 
+    label: 'Time Warp', 
+    desc: '+6 Max Steps per level.', 
+    icon: Timer, 
+    rarity: Rarity.MYTHIC, 
+    cost: 400,
+    maxLimit: 2, 
+    weight: 2
+  },
   [RewardIDs.GEMS_HUGE]: {
       id: RewardIDs.GEMS_HUGE,
       label: 'Gem Hoard',
-      desc: 'Gain 250 Gems.',
+      desc: 'Gain 200 Gems.',
       icon: Gem,
       rarity: Rarity.MYTHIC, 
       cost: 0,
@@ -160,6 +145,16 @@ export const REWARD_DEFINITIONS: Record<string, RewardDef> = {
       maxLimit: 2,
       weight: 1
   },
+  [RewardIDs.STEPS_EPIC]: { 
+    id: RewardIDs.STEPS_EPIC, 
+    label: 'Logistics', 
+    desc: '+4 Max Steps per level.', 
+    icon: Timer, 
+    rarity: Rarity.EPIC,
+    cost: 300,
+    maxLimit: 3,
+    weight: 1
+  },
   [RewardIDs.GREED]: { 
       id: RewardIDs.GREED, 
       label: 'Greed', 
@@ -193,7 +188,7 @@ export const REWARD_DEFINITIONS: Record<string, RewardDef> = {
   [RewardIDs.GEMS_LARGE]: {
       id: RewardIDs.GEMS_LARGE,
       label: 'Gem Trove',
-      desc: 'Gain 180 Gems.',
+      desc: 'Gain 120 Gems.',
       icon: Gem,
       rarity: Rarity.EPIC,
       cost: 0,
@@ -211,6 +206,16 @@ export const REWARD_DEFINITIONS: Record<string, RewardDef> = {
       cost: 200,
       maxLimit: 1,
       weight: 2
+  },
+  [RewardIDs.STEPS_RARE]: { 
+    id: RewardIDs.STEPS_RARE, 
+    label: 'Planning', 
+    desc: '+2 Max Steps per level.', 
+    icon: Timer, 
+    rarity: Rarity.RARE,
+    cost: 200,
+    maxLimit: 5,
+    weight: 2
   },
   [RewardIDs.LIMIT_BREAK]: { 
       id: RewardIDs.LIMIT_BREAK, 
@@ -245,7 +250,7 @@ export const REWARD_DEFINITIONS: Record<string, RewardDef> = {
   [RewardIDs.GEMS_MEDIUM]: {
       id: RewardIDs.GEMS_MEDIUM,
       label: 'Gem Stash',
-      desc: 'Gain 120 Gems.',
+      desc: 'Gain 60 Gems.',
       icon: Gem,
       rarity: Rarity.RARE,
       cost: 0,
@@ -299,10 +304,10 @@ export const REWARD_DEFINITIONS: Record<string, RewardDef> = {
   [RewardIDs.GEMS_SMALL]: {
       id: RewardIDs.GEMS_SMALL,
       label: 'Gem Cache',
-      desc: 'Gain 50-150 Gems immediately.',
+      desc: 'Gain 10-50 Gems.',
       icon: Gem,
       rarity: Rarity.COMMON,
-      cost: 75,
+      cost: 20,
       noInventory: true,
       weight: 2
   },
@@ -346,11 +351,4 @@ export const REWARD_DEFINITIONS: Record<string, RewardDef> = {
       noInventory: true,
       weight: 1
   },
-};
-
-export const RARITY_COLORS: Record<Rarity, string> = {
-  [Rarity.COMMON]: 'border-slate-500 text-slate-300',
-  [Rarity.RARE]: 'border-blue-500 text-blue-400',
-  [Rarity.EPIC]: 'border-purple-500 text-purple-400',
-  [Rarity.MYTHIC]: 'border-orange-500 text-orange-400',
 };

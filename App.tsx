@@ -7,7 +7,7 @@ import {
   INITIAL_GRID_SIZE, LEVELS_PER_RUN, INITIAL_ARMY_CONFIG, SCORING
 } from './constants';
 import { LEVEL_STEPS } from './components/map/levelConfig';
-import { INITIAL_GEMS, INITIAL_MAX_REWARD_SELECTIONS, INITIAL_REWARD_OPTIONS_COUNT } from './components/rewards/rewardConfig';
+import { INITIAL_GEMS, INITIAL_MAX_REWARD_SELECTIONS, INITIAL_REWARD_OPTIONS_COUNT } from './components/rewards/rarityConfig';
 
 // Components
 import { StartScreen } from './components/screens/StartScreen';
@@ -32,6 +32,7 @@ const App: React.FC = () => {
     survivors: [],
     scavengerLevel: 0,
     commanderMoveRange: 1,
+    maxStepsBonus: 0,
     maxRewardSelections: INITIAL_MAX_REWARD_SELECTIONS,
     rewardOptionsCount: INITIAL_REWARD_OPTIONS_COUNT,
     gems: INITIAL_GEMS, // Initial Gems from config
@@ -68,6 +69,7 @@ const App: React.FC = () => {
       survivors: [],
       scavengerLevel: 0,
       commanderMoveRange: 1,
+      maxStepsBonus: 0,
       maxRewardSelections: INITIAL_MAX_REWARD_SELECTIONS,
       rewardOptionsCount: INITIAL_REWARD_OPTIONS_COUNT,
       gems: INITIAL_GEMS,
@@ -179,10 +181,11 @@ const App: React.FC = () => {
   const handleRewardSelect = (rewardIds: string[]) => {
     setGameState(prev => {
         const nextLevel = prev.currentLevel + 1;
-        const nextSteps = LEVEL_STEPS[nextLevel - 1] || 10;
+        // Base steps from config, bonuses will be added in rewardUtils
+        const nextStepsBase = LEVEL_STEPS[nextLevel - 1] || 10;
         
         // Use isolated utility for complex state transitions
-        const updates = applyRewardsAndRestoreArmy(prev, rewardIds, nextSteps);
+        const updates = applyRewardsAndRestoreArmy(prev, rewardIds, nextStepsBase);
         
         return {
             ...prev,
@@ -205,6 +208,7 @@ const App: React.FC = () => {
         survivors: [],
         scavengerLevel: 0,
         commanderMoveRange: 1,
+        maxStepsBonus: 0,
         maxRewardSelections: INITIAL_MAX_REWARD_SELECTIONS,
         rewardOptionsCount: INITIAL_REWARD_OPTIONS_COUNT,
         gems: INITIAL_GEMS,
