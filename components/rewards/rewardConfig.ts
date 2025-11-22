@@ -48,7 +48,7 @@ export const REWARD_DEFINITIONS: Record<string, RewardDef> = {
       label: 'Expand', 
       desc: 'Increase board size by 1. Adds new Unit types.', 
       icon: Grid, 
-      rarity: Rarity.EPIC, 
+      rarity: Rarity.MYTHIC, 
       cost: 200,
       maxLimit: MAX_GRID_SIZE - 3 // Assuming start size is 3, max 5. Limit = 2.
   },

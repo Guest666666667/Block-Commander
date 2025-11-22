@@ -2,7 +2,7 @@
 import { UnitType } from '../../types';
 
 // Steps per level: [Level 1, Level 2, ..., Level 6]
-export const LEVEL_STEPS = [1, 12, 15, 18, 21, 25];
+export const LEVEL_STEPS = [6, 9, 12, 15, 18, 21];
 
 export interface LevelConfig {
   difficultyMult: number; // Multiplier for Enemy Stats and Size
