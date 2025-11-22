@@ -1,11 +1,12 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { CheckCircle, ArrowRight, Diamond, Crown } from 'lucide-react';
 import { UnitType, Rarity } from '../../types';
 import { MAX_PER_UNIT_COUNT, SCORING } from '../../constants';
 import { UnitIcon } from '../units/UnitIcon';
 import { RARITY_COLORS, REWARD_DEFINITIONS, RewardIDs } from './rewardConfig';
 import { calculateTransactionCost } from './rewardUtils';
+import { GemCounter } from '../common/GemCounter';
 
 interface RewardScreenProps {
   rewardIds: string[];
@@ -27,22 +28,6 @@ export const RewardScreen: React.FC<RewardScreenProps> = ({
 
   // --- Gem Animation State ---
   const winBonus = SCORING.GEM_WIN_BONUS;
-  const startGems = Math.max(0, currentGems - winBonus);
-  const [displayGems, setDisplayGems] = useState(startGems);
-  const [showGemBonus, setShowGemBonus] = useState(false);
-
-  useEffect(() => {
-      const timer1 = setTimeout(() => {
-          setShowGemBonus(true);
-      }, 500);
-
-      const timer2 = setTimeout(() => {
-          setDisplayGems(currentGems);
-          setShowGemBonus(false);
-      }, 2000);
-
-      return () => { clearTimeout(timer1); clearTimeout(timer2); };
-  }, [currentGems]);
 
   const limitBreakCount = rewardsHistory[RewardIDs.LIMIT_BREAK] || 0;
   const currentPerUnitLimit = MAX_PER_UNIT_COUNT + limitBreakCount;
@@ -136,20 +121,8 @@ export const RewardScreen: React.FC<RewardScreenProps> = ({
             <div className="flex justify-between items-center">
                 <h2 className="text-xl font-black text-yellow-500 tracking-widest">LEVEL 1-{currentLevel} CLEAR</h2>
                 
-                {/* Animated Gem Counter */}
-                <div className="relative flex items-center">
-                    <div className={`flex items-center gap-1.5 bg-black/40 px-3 py-1.5 rounded-full border transition-colors duration-300 ${showGemBonus ? 'border-cyan-500 shadow-[0_0_10px_rgba(34,211,238,0.3)]' : 'border-slate-600'}`}>
-                        <Diamond size={14} className="text-cyan-400 fill-cyan-400" />
-                        <span className="font-mono font-bold text-cyan-300 min-w-[24px] text-right transition-all duration-300 relative">
-                            {displayGems}
-                            {showGemBonus && (
-                                <span className="absolute top-0 right-0 translate-x-full ml-1 text-xs font-bold text-cyan-300 animate-float-up-fade whitespace-nowrap">
-                                    +{winBonus}
-                                </span>
-                            )}
-                        </span>
-                    </div>
-                </div>
+                {/* Reusable Gem Counter */}
+                <GemCounter amount={currentGems} bonus={winBonus} />
             </div>
           </div>
 
@@ -322,14 +295,6 @@ export const RewardScreen: React.FC<RewardScreenProps> = ({
         }
         .animate-slide-in-right {
             animation: slide-in-right 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
-        }
-        @keyframes float-up-fade {
-            0% { transform: translateY(100%); opacity: 0; }
-            20% { opacity: 1; }
-            100% { transform: translateY(-150%); opacity: 0; }
-        }
-        .animate-float-up-fade {
-            animation: float-up-fade 1.5s ease-out forwards;
         }
       `}</style>
     </div>

@@ -95,7 +95,18 @@ const App: React.FC = () => {
       if (count === 3) stats.matches3++;
       else if (count === 4) stats.matches4++;
       else if (count >= 5) stats.matches5++;
-      return { ...prev, scoreStats: stats };
+
+      // Gem Rewards for Matching
+      let gemBonus = 0;
+      if (count === 3) gemBonus = 1;
+      else if (count === 4) gemBonus = 3;
+      else if (count >= 5) gemBonus = 2 * count;
+
+      return { 
+          ...prev, 
+          scoreStats: stats,
+          gems: prev.gems + gemBonus
+      };
     });
   };
 

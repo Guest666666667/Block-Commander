@@ -2,6 +2,7 @@
 import React from 'react';
 import { Play, Pause, Flag, Backpack, X, Diamond } from 'lucide-react';
 import { REWARD_DEFINITIONS } from '../rewards/rewardConfig';
+import { GemCounter } from '../common/GemCounter';
 
 // --- BATTLE CONTROLS ---
 
@@ -23,9 +24,16 @@ export const BattleControls: React.FC<BattleControlsProps> = ({
 }) => {
     return (
         <>
-             {/* BUFF TOGGLE BUTTON */}
+            {/* BOTTOM LEFT: GEMS */}
             <div className="absolute bottom-2 left-2 z-40">
-                <button 
+                <div className="scale-90 origin-bottom-left">
+                    <GemCounter amount={gems} showBackground={true} />
+                </div>
+            </div>
+
+            {/* BOTTOM RIGHT: BACKPACK */}
+            <div className="absolute bottom-2 right-2 z-40">
+                 <button 
                     onClick={onToggleBuffs}
                     className={`
                         w-10 h-10 rounded-md shadow-lg flex items-center justify-center border-2 transition-all
@@ -68,11 +76,8 @@ export const BattleBuffsModal: React.FC<BattleBuffsModalProps> = ({ rewardsHisto
     return (
         <div className="absolute inset-0 z-[60] flex items-center justify-center p-8" onClick={onClose}>
             <div className="bg-slate-800 border-2 border-slate-600 rounded-xl p-4 shadow-2xl max-w-xs w-full relative animate-fade-in" onClick={(e) => e.stopPropagation()}>
-                <div className="flex justify-between items-center mb-4 pb-2 border-b border-slate-700">
-                    <div className="flex items-center gap-2 bg-black/40 px-3 py-1.5 rounded-full border border-slate-600">
-                        <Diamond size={14} className="text-cyan-400 fill-cyan-400" />
-                        <span className="font-mono font-bold text-cyan-300">{gems}</span>
-                    </div>
+                <div className="flex justify-end items-center mb-4 pb-2 border-b border-slate-700">
+                    {/* Gems removed from here */}
                     <button onClick={onClose} className="text-slate-400 hover:text-white">
                         <X size={18} />
                     </button>
