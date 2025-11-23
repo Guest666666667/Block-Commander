@@ -3,7 +3,7 @@ import React from 'react';
 import { BattleEntity, UnitType } from '../../types';
 import { UnitIcon } from '../units/UnitIcon';
 import { X, Shield, Sword, Heart, Zap, Target, Footprints, Timer } from 'lucide-react';
-import { BUFF_CONFIG, COMMANDERS } from '../units/unitConfig';
+import { BUFF_CONFIG, COMMANDERS, SOLDIER_PROFILES } from '../units/unitConfig';
 
 interface BattleEntityModalProps {
     entity: BattleEntity;
@@ -12,6 +12,11 @@ interface BattleEntityModalProps {
 }
 
 export const BattleEntityModal: React.FC<BattleEntityModalProps> = ({ entity, upgrades, onClose }) => {
+    // Determine Profile (Commander or Soldier)
+    const profile = COMMANDERS[entity.type] || SOLDIER_PROFILES[entity.type];
+    const displayName = profile ? profile.name : entity.type;
+    const displayDesc = profile ? profile.description : "";
+
     const renderStatBox = (
         icon: React.ReactNode, 
         current: number, 
@@ -98,7 +103,7 @@ export const BattleEntityModal: React.FC<BattleEntityModalProps> = ({ entity, up
                                 </div>
                                 <div>
                                     <h3 className={`font-black text-base uppercase tracking-wide leading-none mb-1 ${entity.team === 'PLAYER' ? 'text-green-400' : 'text-red-400'}`}>
-                                        {COMMANDERS[entity.type] ? COMMANDERS[entity.type].name : entity.type}
+                                        {displayName}
                                     </h3>
                                     
                                     <div className="flex items-center gap-1.5 text-sm font-mono font-bold text-slate-200">
@@ -124,13 +129,20 @@ export const BattleEntityModal: React.FC<BattleEntityModalProps> = ({ entity, up
                         </div>
 
                         {/* Compact Stats Grid */}
-                        <div className="grid grid-cols-5 gap-1.5 mb-3">
+                        <div className="grid grid-cols-5 gap-1.5 mb-2">
                             {renderStatBox(<Sword size={14}/>, entity.atk, entity.statsModifiers.atk, false)}
                             {renderStatBox(<Shield size={14}/>, entity.def, entity.statsModifiers.def, false)}
                             {renderStatBox(<Target size={14}/>, entity.range, entity.statsModifiers.range, true)}
                             {renderAtkSpeedBox(entity.atkSpeed, entity.statsModifiers.atkSpeed)}
                             {renderStatBox(<Footprints size={14}/>, entity.moveSpeed, entity.statsModifiers.moveSpeed, true, 100)} 
                         </div>
+
+                        {/* Entity Description */}
+                        {displayDesc && (
+                            <div className="text-center text-[10px] text-slate-400 italic mb-2 px-2 leading-tight">
+                                "{displayDesc}"
+                            </div>
+                        )}
                         
                         {/* Buffs Section */}
                         {entity.buffs.length > 0 && (

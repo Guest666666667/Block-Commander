@@ -135,6 +135,12 @@ export interface CommanderProfile {
   class: CommanderClass;
 }
 
+export interface SoldierProfile {
+  id: UnitType;
+  name: string;
+  description: string;
+}
+
 export interface ScoreStats {
   matches3: number;
   matches4: number;

@@ -1,5 +1,5 @@
 
-import { UnitType, CommanderProfile, EntityStats, CommanderClass, BuffStats } from '../../types';
+import { UnitType, CommanderProfile, EntityStats, CommanderClass, BuffStats, SoldierProfile } from '../../types';
 
 // Keys are now the specific UnitType
 export const COMMANDERS: Record<string, CommanderProfile> = {
@@ -43,6 +43,34 @@ export const COMMANDERS: Record<string, CommanderProfile> = {
     skillDesc: "All Spear allies gain HP and MoveSpeed bouns.",
     class: CommanderClass.VANGUARD
   }
+};
+
+export const SOLDIER_PROFILES: Record<string, SoldierProfile> = {
+    [UnitType.INFANTRY]: {
+        id: UnitType.INFANTRY,
+        name: "Infantry",
+        description: "Versatile melee fighter with high mobility. The backbone of any army."
+    },
+    [UnitType.ARCHER]: {
+        id: UnitType.ARCHER,
+        name: "Archer",
+        description: "Fragile ranged unit. Deals consistent damage from a safe distance."
+    },
+    [UnitType.SHIELD]: {
+        id: UnitType.SHIELD,
+        name: "Shield",
+        description: "Heavily armored defender. Moves slowly but absorbs massive damage."
+    },
+    [UnitType.SPEAR]: {
+        id: UnitType.SPEAR,
+        name: "Spear",
+        description: "Tactical unit with extended reach. Charges forward to break enemy lines."
+    },
+    [UnitType.OBSTACLE]: {
+        id: UnitType.OBSTACLE,
+        name: "Barricade",
+        description: "A stationary object. It just stands there, menacingly."
+    }
 };
 
 // atkSpeed: Lower is faster (ms delay between attacks)
