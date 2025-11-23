@@ -129,8 +129,6 @@ export interface VisualEffect {
 export interface CommanderProfile {
   id: UnitType; // Keyed by UnitType now
   name: string;
-  shortName: string; // Display name for small grids
-  role: string;
   description: string;
   skillName: string;
   skillDesc: string;
@@ -171,6 +169,9 @@ export interface GameState {
   
   // Loot Tables
   blockCommonRewards: boolean; // If true, Common rewards are removed from the pool
+
+  // Puzzle Config
+  unitUnlockOrder: UnitType[]; // The custom order of units [Infantry, Archer, Shield, Spear] set by player
 
   // Reward Randomization
   currentRewardIds: string[];

@@ -169,13 +169,13 @@ export const BattleZone: React.FC<BattleZoneProps> = (props) => {
                  {!isDowned && (
                      <div className="absolute -bottom-2 left-0 w-full h-1.5 bg-black/30 rounded-full overflow-hidden backdrop-blur-[1px]">
                          <div 
-                            className={`h-full rounded-full transition-all duration-200 ${ent.team === 'PLAYER' ? 'bg-green-500' : 'bg-red-500'}`}
+                            className={`h-full rounded-full ${ent.team === 'PLAYER' ? 'bg-green-500' : 'bg-red-500'}`}
                             style={{ width: `${hpPercent}%` }}
                          />
                      </div>
                  )}
                  
-                 {ent.type === UnitType.SPEAR && ent.aiState === 'CHARGING' && !isDowned && (
+                 {(ent.type === UnitType.SPEAR || ent.type === UnitType.COMMANDER_VANGUARD) && ent.aiState === 'CHARGING' && !isDowned && (
                      <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 text-[8px] font-bold text-yellow-300 animate-pulse whitespace-nowrap shadow-black drop-shadow-md z-20">
                         CHARGE!
                      </div>

@@ -19,8 +19,10 @@ export const generateInitialGrid = (gameState: GameState): GridItem[] => {
     
     const commanderCount = 1;
     
-    const availableTypes = [UnitType.INFANTRY, UnitType.ARCHER, UnitType.SHIELD, UnitType.SPEAR];
-    const currentSoldierTypes = availableTypes.slice(0, n - 1); // e.g. n=3 -> [Inf, Arch]
+    // USE CUSTOM ORDER FROM GAME STATE
+    // Logic: If n=3, take first 2 units. If n=4, take first 3. If n=5, take 4.
+    const availableTypes = gameState.unitUnlockOrder; 
+    const currentSoldierTypes = availableTypes.slice(0, n - 1); 
     
     const remodelExtras: UnitType[] = [];
     if (remodelCount > 0) {
@@ -110,7 +112,8 @@ export const shuffleSoldiers = (currentGrid: GridItem[], gameState: GameState, f
  * Replaces matched items with new random units.
  */
 export const replaceMatchedItems = (currentGrid: GridItem[], matches: Set<string>, gameState: GameState): GridItem[] => {
-    const availableTypes = [UnitType.INFANTRY, UnitType.ARCHER, UnitType.SHIELD, UnitType.SPEAR];
+    // USE CUSTOM ORDER FROM GAME STATE
+    const availableTypes = gameState.unitUnlockOrder;
     const currentSoldierTypes = availableTypes.slice(0, gameState.gridSize - 1);
 
     return currentGrid.map(item => {

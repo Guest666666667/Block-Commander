@@ -282,7 +282,7 @@ export const REWARD_DEFINITIONS: Record<string, RewardDef> = {
   [`${RewardIDs.UPGRADE_PREFIX}${UnitType.SHIELD}`]: { 
       id: `${RewardIDs.UPGRADE_PREFIX}${UnitType.SHIELD}`, 
       label: 'Elite Shld.', 
-      desc: '+HP, +DEF', 
+      desc: '++HP', 
       icon: ShieldCheck, 
       rarity: Rarity.RARE, 
       cost: 200,

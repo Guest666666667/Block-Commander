@@ -40,6 +40,7 @@ const App: React.FC = () => {
     remodelLevel: 0,
     armyLimitBonus: 0, 
     blockCommonRewards: false,
+    unitUnlockOrder: [UnitType.INFANTRY, UnitType.ARCHER, UnitType.SHIELD, UnitType.SPEAR], // Default
     currentRewardIds: [],
     rewardsHistory: {},
     scoreStats: { matches3: 0, matches4: 0, matches5: 0, reshuffles: 0, won: false, kills: {} },
@@ -48,19 +49,28 @@ const App: React.FC = () => {
 
   // --- Actions ---
 
-  const startGame = (commanderUnitType: UnitType) => {
+  const startGame = (commanderUnitType: UnitType, unitOrder: UnitType[]) => {
     // Apply INITIAL_ARMY_CONFIG to everyone (Debug/Global Config)
     const startingArmy = [commanderUnitType, ...INITIAL_ARMY_CONFIG];
     
     // Centurion Skill: Start with an EXTRA full retinue
-    if (commanderUnitType === UnitType.COMMANDER_CENTURION) {
-        startingArmy.push(UnitType.INFANTRY, UnitType.ARCHER, UnitType.SHIELD, UnitType.SPEAR);
+    switch (commanderUnitType) {
+        // Mechanics
+        case UnitType.COMMANDER_CENTURION: {
+          startingArmy.push(UnitType.INFANTRY, UnitType.ARCHER, UnitType.SHIELD, UnitType.SPEAR); 
+          startingArmy.push(UnitType.INFANTRY, UnitType.ARCHER, UnitType.SHIELD, UnitType.SPEAR); break;
+        }
+        case UnitType.COMMANDER_WARLORD: startingArmy.push(UnitType.INFANTRY); break;
+        case UnitType.COMMANDER_ELF: startingArmy.push(UnitType.ARCHER); break;
+        case UnitType.COMMANDER_GUARDIAN: startingArmy.push(UnitType.SHIELD); break;
+        case UnitType.COMMANDER_VANGUARD: startingArmy.push( UnitType.SPEAR); break;
     }
 
     setGameState(prev => ({
       ...prev,
       phase: Phase.PUZZLE,
       commanderUnitType,
+      unitUnlockOrder: unitOrder, // Set custom order
       currentLevel: 1,
       gridSize: INITIAL_GRID_SIZE,
       stepsRemaining: LEVEL_STEPS[0],
@@ -216,6 +226,7 @@ const App: React.FC = () => {
         remodelLevel: 0,
         armyLimitBonus: 0,
         blockCommonRewards: false,
+        unitUnlockOrder: [UnitType.INFANTRY, UnitType.ARCHER, UnitType.SHIELD, UnitType.SPEAR],
         currentRewardIds: [],
         rewardsHistory: {},
         scoreStats: { matches3: 0, matches4: 0, matches5: 0, reshuffles: 0, won: false, kills: {} },
