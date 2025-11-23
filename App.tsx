@@ -236,53 +236,57 @@ const App: React.FC = () => {
 
   // --- Render Helpers ---
 
-  if (gameState.phase === Phase.MENU) {
-    return <StartScreen onStart={startGame} />;
-  }
-
   const showPuzzle = gameState.phase === Phase.PUZZLE || gameState.phase === Phase.BATTLE || gameState.phase === Phase.REWARD || gameState.phase === Phase.GAME_OVER;
   const isPuzzleLocked = gameState.phase !== Phase.PUZZLE;
 
   return (
-    <div className="h-screen w-screen flex flex-col bg-slate-950 max-w-lg mx-auto relative shadow-2xl">
-      {/* TOP: Map Zone */}
-      <div className="h-[10%] w-full z-10">
-        <MapZone gameState={gameState} />
-      </div>
+    <div className="h-screen w-screen flex flex-col bg-slate-950 max-w-lg mx-auto relative shadow-2xl overflow-hidden">
+      
+      {/* Conditional Content: Menu OR Game Loop */}
+      {gameState.phase === Phase.MENU ? (
+          <StartScreen onStart={startGame} />
+      ) : (
+        <>
+            {/* TOP: Map Zone */}
+            <div className="h-[10%] w-full z-10">
+                <MapZone gameState={gameState} />
+            </div>
 
-      {/* MIDDLE: Battle Zone */}
-      <div className="flex-1 w-full relative border-b-4 border-slate-900 bg-slate-900 overflow-hidden z-0">
-        <BattleZone 
-          key={gameState.battleId}
-          allies={gameState.summonQueue} 
-          level={gameState.currentLevel}
-          phase={gameState.phase}
-          commanderUnitType={gameState.commanderUnitType}
-          onBattleEnd={handleBattleEnd}
-          upgrades={gameState.upgrades}
-          rewardsHistory={gameState.rewardsHistory}
-          gems={gameState.gems}
-        />
-      </div>
+            {/* MIDDLE: Battle Zone */}
+            <div className="flex-1 w-full relative border-b-4 border-slate-900 bg-slate-900 overflow-hidden z-0">
+                <BattleZone 
+                    key={gameState.battleId}
+                    allies={gameState.summonQueue} 
+                    level={gameState.currentLevel}
+                    phase={gameState.phase}
+                    commanderUnitType={gameState.commanderUnitType}
+                    onBattleEnd={handleBattleEnd}
+                    upgrades={gameState.upgrades}
+                    rewardsHistory={gameState.rewardsHistory}
+                    gems={gameState.gems}
+                />
+            </div>
 
-      {/* BOTTOM: Operations Zone */}
-      <div className="h-[45%] w-full relative z-20 bg-gray-800">
-        {showPuzzle ? (
-          <PuzzleGrid 
-            key={gameState.currentLevel}
-            gameState={gameState} 
-            onSummon={handleSummon}
-            onMatch={handleMatchFound}
-            onBattleStart={handleBattleStart}
-            onReshufflePay={handleReshufflePay}
-            isLocked={isPuzzleLocked}
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-gray-500">
-            Loading...
-          </div>
-        )}
-      </div>
+            {/* BOTTOM: Operations Zone */}
+            <div className="h-[45%] w-full relative z-20 bg-gray-800">
+                {showPuzzle ? (
+                    <PuzzleGrid 
+                        key={gameState.currentLevel}
+                        gameState={gameState} 
+                        onSummon={handleSummon}
+                        onMatch={handleMatchFound}
+                        onBattleStart={handleBattleStart}
+                        onReshufflePay={handleReshufflePay}
+                        isLocked={isPuzzleLocked}
+                    />
+                ) : (
+                    <div className="w-full h-full flex items-center justify-center text-gray-500">
+                        Loading...
+                    </div>
+                )}
+            </div>
+        </>
+      )}
 
       {/* OVERLAYS */}
       {gameState.phase === Phase.REWARD && (
