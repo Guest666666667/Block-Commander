@@ -117,10 +117,10 @@ export const CommanderSelectionScreen: React.FC<CommanderSelectionScreenProps> =
       {/* Main Layout Container: 80% Height */}
       <div className="w-full h-[80%] max-w-md flex flex-col">
           
-          {/* === TOP SECTION (50%): COMMANDER SELECTION === */}
-          {/* Added pt-6 to push content down, adjusted alignment */}
-          <div className="h-[50%] flex flex-col items-center relative z-10 pb-2 pt-6 justify-center">
-             <div className="w-full flex items-center gap-4 mb-6 opacity-80 px-8">
+          {/* === TOP SECTION (55%): COMMANDER SELECTION === */}
+          {/* Expanded to 55% to accomodate extra spacing for visual overflow */}
+          <div className="h-[55%] flex flex-col items-center relative z-10 pb-2 pt-2 justify-center">
+             <div className="w-full flex items-center gap-4 mb-10 opacity-80 px-8">
                 <div className="h-[1px] flex-1 bg-slate-800"></div>
                 <h2 className="text-[10px] font-black text-slate-500 tracking-[0.3em] uppercase whitespace-nowrap">
                     Select Commander
@@ -190,7 +190,8 @@ export const CommanderSelectionScreen: React.FC<CommanderSelectionScreenProps> =
              </div>
 
              {/* Compact Commander Details */}
-             <div className="w-[90%] h-16 bg-slate-800/80 backdrop-blur rounded-lg border border-slate-700 p-2 flex flex-col items-center justify-center shadow-lg mt-4 text-center z-40">
+             {/* Increased Top Margin to avoid visual overlap with carousel */}
+             <div className="w-[90%] h-16 bg-slate-800/80 backdrop-blur rounded-lg border border-slate-700 p-2 flex flex-col items-center justify-center shadow-lg mt-12 text-center z-40">
                  <div className="text-yellow-400 font-bold uppercase text-xs mb-1">
                      {selectedCommander.skillName}
                  </div>
@@ -200,8 +201,9 @@ export const CommanderSelectionScreen: React.FC<CommanderSelectionScreenProps> =
              </div>
           </div>
 
-          {/* === MIDDLE SECTION (30%): DEPLOYMENT ORDER === */}
-          <div className="h-[30%] w-full flex flex-col items-center justify-center px-4 pt-6">
+          {/* === MIDDLE SECTION (25%): DEPLOYMENT ORDER === */}
+          {/* Reduced to 25% to balance Top Section expansion */}
+          <div className="h-[25%] w-full flex flex-col items-center justify-center px-4 pt-2">
               <div className="w-full flex items-center gap-4 mb-3 opacity-80 px-8">
                 <div className="h-[1px] flex-1 bg-slate-800"></div>
                 <h2 className="text-[10px] font-black text-slate-500 tracking-[0.2em] uppercase whitespace-nowrap">
